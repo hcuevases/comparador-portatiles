@@ -1,3 +1,4 @@
+import { LaptopFilters } from '@/components/laptop-filters';
 import { LaptopGrid, type LaptopCard } from '@/components/laptop-grid';
 import { createClient } from '@/lib/supabase/server';
 
@@ -23,19 +24,80 @@ type PriceRow = {
   price_eur: number;
 };
 
-export default async function Home() {
+type SearchParams = {
+  q?: string;
+  brand?: string;
+  ram_min?: string;
+  price_max?: string;
+};
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const q = (params.q ?? '').trim();
+  const brandsFilter = (params.brand ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const ramMin = Number(params.ram_min) || 0;
+  const priceMax = Number(params.price_max) || Number.POSITIVE_INFINITY;
+
   const supabase = await createClient();
 
-  const { data: laptops, error: laptopsErr } = await supabase
+  // 1) Marcas del catálogo completo, para los pills del filtro.
+  const { data: allBrandsRows, error: brandsErr } = await supabase
+    .from('laptops')
+    .select('brand')
+    .returns<{ brand: string }[]>();
+
+  if (brandsErr) {
+    return (
+      <main className="mx-auto max-w-5xl p-8">
+        <ErrorBox title="Error consultando Supabase" message={brandsErr.message} />
+      </main>
+    );
+  }
+
+  const allBrands = Array.from(new Set((allBrandsRows ?? []).map((r) => r.brand))).sort();
+
+  // 2) Si hay filtro de RAM, pre-filtra ids vía specs.
+  let allowedIds: string[] | null = null;
+  if (ramMin > 0) {
+    const { data: specIds } = await supabase
+      .from('specs')
+      .select('laptop_id')
+      .gte('ram_gb', ramMin)
+      .returns<{ laptop_id: string }[]>();
+    allowedIds = (specIds ?? []).map((s) => s.laptop_id);
+    if (allowedIds.length === 0) {
+      return renderPage([], new Map(), new Map(), allBrands);
+    }
+  }
+
+  // 3) Query principal de laptops con filtros de texto/marca.
+  let query = supabase
     .from('laptops')
     .select('id, slug, brand, model, year')
     .order('brand', { ascending: true })
-    .limit(20)
-    .returns<LaptopRow[]>();
+    .limit(50);
+
+  if (q) {
+    // ilike es case-insensitive; .or compone "brand ILIKE ... OR model ILIKE ..."
+    const pattern = `%${escapeIlike(q)}%`;
+    query = query.or(`brand.ilike.${pattern},model.ilike.${pattern}`);
+  }
+  if (brandsFilter.length > 0) {
+    query = query.in('brand', brandsFilter);
+  }
+  if (allowedIds) {
+    query = query.in('id', allowedIds);
+  }
+
+  const { data: laptops, error: laptopsErr } = await query.returns<LaptopRow[]>();
 
   if (laptopsErr) {
     return (
-      <main className="mx-auto max-w-4xl p-8">
+      <main className="mx-auto max-w-5xl p-8">
         <ErrorBox title="Error consultando Supabase" message={laptopsErr.message} />
       </main>
     );
@@ -67,7 +129,25 @@ export default async function Home() {
     }
   }
 
-  const cards: LaptopCard[] = (laptops ?? []).map((l) => ({
+  // 4) Filtro de precio máximo (cliente-side: requiere min price ya calculado).
+  let filteredLaptops = laptops ?? [];
+  if (priceMax !== Number.POSITIVE_INFINITY) {
+    filteredLaptops = filteredLaptops.filter((l) => {
+      const price = minPriceByLaptop.get(l.id);
+      return price !== undefined && price <= priceMax;
+    });
+  }
+
+  return renderPage(filteredLaptops, specsByLaptop, minPriceByLaptop, allBrands);
+}
+
+function renderPage(
+  filteredLaptops: LaptopRow[],
+  specsByLaptop: Map<string, SpecRow>,
+  minPriceByLaptop: Map<string, number>,
+  allBrands: string[],
+) {
+  const cards: LaptopCard[] = filteredLaptops.map((l) => ({
     id: l.id,
     slug: l.slug,
     brand: l.brand,
@@ -79,12 +159,20 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-5xl p-8">
-      <header className="mb-8">
+      <header className="mb-6">
         <h1 className="text-3xl font-semibold tracking-tight">Comparador de portátiles</h1>
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">
           Marca 2-4 portátiles y pulsa Comparar para verlos lado a lado.
         </p>
       </header>
+
+      <LaptopFilters brands={allBrands} />
+
+      <p className="mb-4 text-xs text-zinc-500">
+        {cards.length === 0
+          ? 'Sin resultados con los filtros actuales.'
+          : `${cards.length} ${cards.length === 1 ? 'portátil' : 'portátiles'} encontrados.`}
+      </p>
 
       {cards.length === 0 ? <EmptyState /> : <LaptopGrid laptops={cards} />}
     </main>
@@ -94,13 +182,9 @@ export default async function Home() {
 function EmptyState() {
   return (
     <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
-      <h2 className="text-lg font-medium">Aún no hay portátiles en la base de datos.</h2>
+      <h2 className="text-lg font-medium">Nada que mostrar.</h2>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        Ejecuta{' '}
-        <code className="rounded bg-zinc-100 px-1 py-0.5 text-xs dark:bg-zinc-900">
-          db/migrations/0002_seed.sql
-        </code>{' '}
-        en el SQL Editor de Supabase y recarga.
+        Prueba a ampliar los filtros o pulsa <em>limpiar filtros</em> arriba.
       </p>
     </div>
   );
@@ -113,4 +197,12 @@ function ErrorBox({ title, message }: { title: string; message: string }) {
       <pre className="mt-2 whitespace-pre-wrap text-xs">{message}</pre>
     </div>
   );
+}
+
+/**
+ * Escapa los caracteres especiales de ILIKE (% y _) para que el usuario no
+ * pueda inyectar comodines accidentalmente al teclear.
+ */
+function escapeIlike(input: string): string {
+  return input.replace(/[%_\\]/g, (m) => `\\${m}`);
 }
