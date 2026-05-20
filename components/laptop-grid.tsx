@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 export type LaptopCard = {
   id: string;
@@ -24,7 +24,7 @@ const MAX_COMPARE = 4;
 export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const toggle = (id: string) => {
+  function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -35,9 +35,9 @@ export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
       }
       return next;
     });
-  };
+  }
 
-  const ids = useMemo(() => Array.from(selected), [selected]);
+  const ids = Array.from(selected);
   const compareUrl = `/comparar?ids=${ids.join(',')}`;
   const canCompare = ids.length >= 2;
 
@@ -51,13 +51,36 @@ export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
             <li
               key={l.id}
               className={
-                'rounded-lg border bg-white p-4 shadow-sm transition-colors dark:bg-zinc-950 ' +
+                'relative rounded-lg border bg-white shadow-sm transition-colors dark:bg-zinc-950 ' +
                 (isSelected
                   ? 'border-blue-500 ring-2 ring-blue-500/20'
                   : 'border-zinc-200 dark:border-zinc-800')
               }
             >
-              <div className="flex items-start justify-between gap-2">
+              {/* Checkbox absoluto: vive fuera del Link en el DOM, sin nested interactives. */}
+              <label
+                className={
+                  'absolute right-3 top-3 z-10 flex shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-md border px-2 py-1 text-xs ' +
+                  (isSelected
+                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    : 'border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900') +
+                  (disabled ? ' cursor-not-allowed opacity-50' : '')
+                }
+              >
+                <input
+                  type="checkbox"
+                  className="h-3 w-3 accent-blue-600"
+                  checked={isSelected}
+                  onChange={() => toggle(l.id)}
+                  disabled={disabled}
+                />
+                {isSelected ? 'Añadido' : 'Comparar'}
+              </label>
+
+              <Link
+                href={`/portatiles/${l.slug}`}
+                className="block p-4 pr-24 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40"
+              >
                 <div className="min-w-0">
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">{l.brand}</p>
                   <h2 className="truncate text-lg font-medium leading-tight">{l.model}</h2>
@@ -65,66 +88,48 @@ export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
                     <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{l.year}</p>
                   )}
                 </div>
-                <label
-                  className={
-                    'flex shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-md border px-2 py-1 text-xs ' +
-                    (isSelected
-                      ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                      : 'border-zinc-300 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900') +
-                    (disabled ? ' cursor-not-allowed opacity-50' : '')
-                  }
-                >
-                  <input
-                    type="checkbox"
-                    className="h-3 w-3 accent-blue-600"
-                    checked={isSelected}
-                    onChange={() => toggle(l.id)}
-                    disabled={disabled}
-                  />
-                  {isSelected ? 'Añadido' : 'Comparar'}
-                </label>
-              </div>
 
-              {l.specs && (
-                <dl className="mt-3 grid grid-cols-2 gap-y-1 text-xs text-zinc-700 dark:text-zinc-300">
-                  {l.specs.cpu && (
-                    <>
-                      <dt className="text-zinc-500">CPU</dt>
-                      <dd className="truncate">{l.specs.cpu}</dd>
-                    </>
-                  )}
-                  {l.specs.ram_gb !== null && (
-                    <>
-                      <dt className="text-zinc-500">RAM</dt>
-                      <dd>{l.specs.ram_gb} GB</dd>
-                    </>
-                  )}
-                  {l.specs.storage_gb !== null && (
-                    <>
-                      <dt className="text-zinc-500">SSD</dt>
-                      <dd>{l.specs.storage_gb} GB</dd>
-                    </>
-                  )}
-                  {l.specs.screen_inches !== null && (
-                    <>
-                      <dt className="text-zinc-500">Pantalla</dt>
-                      <dd>{l.specs.screen_inches}″</dd>
-                    </>
-                  )}
-                  {l.specs.weight_kg !== null && (
-                    <>
-                      <dt className="text-zinc-500">Peso</dt>
-                      <dd>{l.specs.weight_kg} kg</dd>
-                    </>
-                  )}
-                </dl>
-              )}
+                {l.specs && (
+                  <dl className="mt-3 grid grid-cols-2 gap-y-1 text-xs text-zinc-700 dark:text-zinc-300">
+                    {l.specs.cpu && (
+                      <>
+                        <dt className="text-zinc-500">CPU</dt>
+                        <dd className="truncate">{l.specs.cpu}</dd>
+                      </>
+                    )}
+                    {l.specs.ram_gb !== null && (
+                      <>
+                        <dt className="text-zinc-500">RAM</dt>
+                        <dd>{l.specs.ram_gb} GB</dd>
+                      </>
+                    )}
+                    {l.specs.storage_gb !== null && (
+                      <>
+                        <dt className="text-zinc-500">SSD</dt>
+                        <dd>{l.specs.storage_gb} GB</dd>
+                      </>
+                    )}
+                    {l.specs.screen_inches !== null && (
+                      <>
+                        <dt className="text-zinc-500">Pantalla</dt>
+                        <dd>{l.specs.screen_inches}″</dd>
+                      </>
+                    )}
+                    {l.specs.weight_kg !== null && (
+                      <>
+                        <dt className="text-zinc-500">Peso</dt>
+                        <dd>{l.specs.weight_kg} kg</dd>
+                      </>
+                    )}
+                  </dl>
+                )}
 
-              {l.minPriceEur !== null ? (
-                <p className="mt-3 text-sm font-medium">Desde {formatEur(l.minPriceEur)}</p>
-              ) : (
-                <p className="mt-3 text-xs text-zinc-400">Sin precio aún</p>
-              )}
+                {l.minPriceEur !== null ? (
+                  <p className="mt-3 text-sm font-medium">Desde {formatEur(l.minPriceEur)}</p>
+                ) : (
+                  <p className="mt-3 text-xs text-zinc-400">Sin precio aún</p>
+                )}
+              </Link>
             </li>
           );
         })}
