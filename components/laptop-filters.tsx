@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 type Props = {
   brands: string[];
@@ -17,47 +17,37 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
-  // Snapshot inicial desde URL.
-  const initialQ = searchParams.get('q') ?? '';
-  const initialBrands = new Set((searchParams.get('brand') ?? '').split(',').filter(Boolean));
-  const initialRamMin = Number(searchParams.get('ram_min') ?? '') || 0;
-  const initialPriceMax = searchParams.get('price_max') ?? '';
+  // Estado local solo para los inputs editables (debounced hacia la URL).
+  // Los pills (brand, ram_min) se leen directamente de searchParams.
+  const [q, setQ] = useState(searchParams.get('q') ?? '');
+  const [priceMax, setPriceMax] = useState(searchParams.get('price_max') ?? '');
 
-  const [q, setQ] = useState(initialQ);
-  const [priceMax, setPriceMax] = useState(initialPriceMax);
+  // Empuja un único par key/value al URL. Declarado antes de los useEffect que lo usan.
+  function pushParam(key: string, value: string | null) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === null || value === '') params.delete(key);
+    else params.set(key, value);
+    const next = params.toString();
+    startTransition(() => {
+      router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+    });
+  }
 
-  // Empuja la búsqueda al URL con debounce para no martillear al server.
+  // Debounce: cada cambio en `q` o `priceMax` se compromete al URL tras 300 ms sin tecla.
   useEffect(() => {
-    const t = setTimeout(() => {
-      pushParam('q', q || null);
-    }, DEBOUNCE_MS);
+    const t = setTimeout(() => pushParam('q', q || null), DEBOUNCE_MS);
     return () => clearTimeout(t);
+    // pushParam es estable a nivel de render; el resto de deps lo capta el React Compiler.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  // Precio: misma idea con debounce.
   useEffect(() => {
-    const t = setTimeout(() => {
-      pushParam('price_max', priceMax || null);
-    }, DEBOUNCE_MS);
+    const t = setTimeout(() => pushParam('price_max', priceMax || null), DEBOUNCE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priceMax]);
 
-  const pushParam = useCallback(
-    (key: string, value: string | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (value === null || value === '') params.delete(key);
-      else params.set(key, value);
-      const next = params.toString();
-      startTransition(() => {
-        router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
-      });
-    },
-    [pathname, router, searchParams],
-  );
-
-  const toggleBrand = (brand: string) => {
+  function toggleBrand(brand: string) {
     const params = new URLSearchParams(searchParams.toString());
     const current = new Set((params.get('brand') ?? '').split(',').filter(Boolean));
     if (current.has(brand)) current.delete(brand);
@@ -68,28 +58,25 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
     startTransition(() => {
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
     });
-  };
+  }
 
-  const setRamMin = (value: number | null) => {
+  function setRamMin(value: number | null) {
     pushParam('ram_min', value ? String(value) : null);
-  };
+  }
 
-  const selectedBrands = useMemo(
-    () => new Set((searchParams.get('brand') ?? '').split(',').filter(Boolean)),
-    [searchParams],
-  );
-  const currentRamMin = Number(searchParams.get('ram_min') ?? '') || 0;
-
-  const anyActive =
-    q !== '' || selectedBrands.size > 0 || currentRamMin > 0 || priceMax !== '';
-
-  const clearAll = () => {
+  function clearAll() {
     setQ('');
     setPriceMax('');
     startTransition(() => {
       router.replace(pathname, { scroll: false });
     });
-  };
+  }
+
+  // Valores derivados de la URL (recalculados en cada render; el compiler memoiza).
+  const selectedBrands = new Set((searchParams.get('brand') ?? '').split(',').filter(Boolean));
+  const currentRamMin = Number(searchParams.get('ram_min') ?? '') || 0;
+  const anyActive =
+    q !== '' || selectedBrands.size > 0 || currentRamMin > 0 || priceMax !== '';
 
   return (
     <section
