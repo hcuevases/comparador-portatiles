@@ -1,28 +1,16 @@
 import { LaptopFilters } from '@/components/laptop-filters';
 import { LaptopGrid, type LaptopCard } from '@/components/laptop-grid';
+import type { Tables } from '@/lib/supabase/database.types';
 import { createClient } from '@/lib/supabase/server';
 
-type LaptopRow = {
-  id: string;
-  slug: string;
-  brand: string;
-  model: string;
-  year: number | null;
-};
-
-type SpecRow = {
-  laptop_id: string;
-  cpu: string | null;
-  ram_gb: number | null;
-  storage_gb: number | null;
-  screen_inches: number | null;
-  weight_kg: number | null;
-};
-
-type PriceRow = {
-  laptop_id: string;
-  price_eur: number;
-};
+// Derivados del esquema generado por `supabase gen types`. Si una columna
+// cambia, TS revienta aquí — no hay que sincronizar tipos a mano.
+type LaptopRow = Pick<Tables<'laptops'>, 'id' | 'slug' | 'brand' | 'model' | 'year'>;
+type SpecRow = Pick<
+  Tables<'specs'>,
+  'laptop_id' | 'cpu' | 'ram_gb' | 'storage_gb' | 'screen_inches' | 'weight_kg'
+>;
+type PriceRow = Pick<Tables<'prices_history'>, 'laptop_id' | 'price_eur'>;
 
 type SearchParams = {
   q?: string;

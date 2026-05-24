@@ -1,36 +1,29 @@
 import Link from 'next/link';
+
+import type { Tables } from '@/lib/supabase/database.types';
 import { createClient } from '@/lib/supabase/server';
 
-type LaptopRow = {
-  id: string;
-  slug: string;
-  brand: string;
-  model: string;
-  year: number | null;
-};
-
-type SpecRow = {
-  laptop_id: string;
-  cpu: string | null;
-  cpu_cores: number | null;
-  ram_gb: number | null;
-  storage_gb: number | null;
-  storage_type: string | null;
-  gpu: string | null;
-  gpu_vram_gb: number | null;
-  screen_inches: number | null;
-  screen_resolution: string | null;
-  screen_refresh_hz: number | null;
-  weight_kg: number | null;
-  battery_wh: number | null;
-  ports: string[] | null;
-  os: string | null;
-};
-
-type PriceRow = {
-  laptop_id: string;
-  price_eur: number;
-};
+// Derivados del esquema generado. Cambia una columna en Supabase y aquí salta TS.
+type LaptopRow = Pick<Tables<'laptops'>, 'id' | 'slug' | 'brand' | 'model' | 'year'>;
+type SpecRow = Pick<
+  Tables<'specs'>,
+  | 'laptop_id'
+  | 'cpu'
+  | 'cpu_cores'
+  | 'ram_gb'
+  | 'storage_gb'
+  | 'storage_type'
+  | 'gpu'
+  | 'gpu_vram_gb'
+  | 'screen_inches'
+  | 'screen_resolution'
+  | 'screen_refresh_hz'
+  | 'weight_kg'
+  | 'battery_wh'
+  | 'ports'
+  | 'os'
+>;
+type PriceRow = Pick<Tables<'prices_history'>, 'laptop_id' | 'price_eur'>;
 
 const MAX_COMPARE = 4;
 

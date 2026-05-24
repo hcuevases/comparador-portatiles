@@ -1,12 +1,14 @@
-import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { notFound } from 'next/navigation';
+
 import {
   PriceHistoryChart,
   type ChartDatum,
   type ChartSeries,
 } from '@/components/price-history-chart';
+import { createAdminClient } from '@/lib/supabase/admin';
+import type { Tables } from '@/lib/supabase/database.types';
+import { createClient } from '@/lib/supabase/server';
 
 // Pre-render todas las páginas al build; revalidación cada hora para recoger
 // nuevos precios del cron (cuando exista).
@@ -19,36 +21,31 @@ const SERIES_COLORS = ['#2563eb', '#dc2626', '#16a34a', '#ea580c', '#9333ea', '#
 
 type RouteParams = { slug: string };
 
-type Laptop = {
-  id: string;
-  slug: string;
-  brand: string;
-  model: string;
-  year: number | null;
-  description: string | null;
-  image_url: string | null;
-};
-
-type Specs = {
-  cpu: string | null;
-  cpu_cores: number | null;
-  ram_gb: number | null;
-  storage_gb: number | null;
-  storage_type: string | null;
-  gpu: string | null;
-  gpu_vram_gb: number | null;
-  screen_inches: number | null;
-  screen_resolution: string | null;
-  screen_refresh_hz: number | null;
-  weight_kg: number | null;
-  battery_wh: number | null;
-  ports: string[] | null;
-  os: string | null;
-};
-
-type Retailer = { id: string; slug: string; name: string };
-type AffiliateLink = { id: string; retailer_id: string; url: string };
-type PriceRow = { retailer_id: string; price_eur: number; observed_at: string };
+// Derivados del esquema generado. Si una columna cambia, TS revienta.
+type Laptop = Pick<
+  Tables<'laptops'>,
+  'id' | 'slug' | 'brand' | 'model' | 'year' | 'description' | 'image_url'
+>;
+type Specs = Pick<
+  Tables<'specs'>,
+  | 'cpu'
+  | 'cpu_cores'
+  | 'ram_gb'
+  | 'storage_gb'
+  | 'storage_type'
+  | 'gpu'
+  | 'gpu_vram_gb'
+  | 'screen_inches'
+  | 'screen_resolution'
+  | 'screen_refresh_hz'
+  | 'weight_kg'
+  | 'battery_wh'
+  | 'ports'
+  | 'os'
+>;
+type Retailer = Pick<Tables<'retailers'>, 'id' | 'slug' | 'name'>;
+type AffiliateLink = Pick<Tables<'affiliate_links'>, 'id' | 'retailer_id' | 'url'>;
+type PriceRow = Pick<Tables<'prices_history'>, 'retailer_id' | 'price_eur' | 'observed_at'>;
 
 // generateStaticParams corre en build time, sin request HTTP. El cliente
 // server-side normal depende de cookies(), que no existen en ese contexto.
