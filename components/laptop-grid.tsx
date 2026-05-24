@@ -3,19 +3,17 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
-export type LaptopCard = {
-  id: string;
-  slug: string;
-  brand: string;
-  model: string;
-  year: number | null;
-  specs: {
-    cpu: string | null;
-    ram_gb: number | null;
-    storage_gb: number | null;
-    screen_inches: number | null;
-    weight_kg: number | null;
-  } | null;
+import type { Tables } from '@/lib/supabase/database.types';
+
+// Subconjunto de columnas que pintamos en la tarjeta. Derivado del esquema
+// generado para que cambios de tipo en specs se propaguen automáticamente.
+type CardSpecs = Pick<
+  Tables<'specs'>,
+  'cpu' | 'ram_gb' | 'storage_gb' | 'screen_inches' | 'weight_kg'
+>;
+
+export type LaptopCard = Pick<Tables<'laptops'>, 'id' | 'slug' | 'brand' | 'model' | 'year'> & {
+  specs: CardSpecs | null;
   minPriceEur: number | null;
 };
 
