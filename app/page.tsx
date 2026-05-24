@@ -17,6 +17,7 @@ type SearchParams = {
   brand?: string;
   ram_min?: string;
   price_max?: string;
+  message?: string;
 };
 
 export default async function Home({
@@ -29,6 +30,7 @@ export default async function Home({
   const brandsFilter = (params.brand ?? '').split(',').map((s) => s.trim()).filter(Boolean);
   const ramMin = Number(params.ram_min) || 0;
   const priceMax = Number(params.price_max) || Number.POSITIVE_INFINITY;
+  const message = params.message;
 
   const supabase = await createClient();
 
@@ -126,7 +128,7 @@ export default async function Home({
     });
   }
 
-  return renderPage(filteredLaptops, specsByLaptop, minPriceByLaptop, allBrands);
+  return renderPage(filteredLaptops, specsByLaptop, minPriceByLaptop, allBrands, message);
 }
 
 function renderPage(
@@ -134,6 +136,7 @@ function renderPage(
   specsByLaptop: Map<string, SpecRow>,
   minPriceByLaptop: Map<string, number>,
   allBrands: string[],
+  message?: string,
 ) {
   const cards: LaptopCard[] = filteredLaptops.map((l) => ({
     id: l.id,
@@ -153,6 +156,12 @@ function renderPage(
           Marca 2-4 portátiles y pulsa Comparar para verlos lado a lado.
         </p>
       </header>
+
+      {message && (
+        <div className="mb-4 rounded-md border border-green-300 bg-green-50 p-3 text-sm text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-100">
+          {message}
+        </div>
+      )}
 
       <LaptopFilters brands={allBrands} />
 

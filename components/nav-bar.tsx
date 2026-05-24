@@ -31,7 +31,12 @@ export async function NavBar() {
               >
                 Mis comparativas
               </Link>
-              <span className="hidden text-xs text-zinc-500 sm:inline">{user.email}</span>
+              <Link
+                href="/cuenta"
+                className="hidden text-xs text-zinc-500 hover:text-zinc-900 sm:inline dark:hover:text-zinc-100"
+              >
+                {user.email}
+              </Link>
               <form action={signOut}>
                 <button
                   type="submit"
