@@ -1,7 +1,10 @@
 import Link from 'next/link';
 
+import { SubmitButton } from '@/components/submit-button';
 import type { Tables } from '@/lib/supabase/database.types';
 import { createClient } from '@/lib/supabase/server';
+
+import { saveComparison } from './actions';
 
 // Derivados del esquema generado. Cambia una columna en Supabase y aquí salta TS.
 type LaptopRow = Pick<Tables<'laptops'>, 'id' | 'slug' | 'brand' | 'model' | 'year'>;
@@ -27,12 +30,14 @@ type PriceRow = Pick<Tables<'prices_history'>, 'laptop_id' | 'price_eur'>;
 
 const MAX_COMPARE = 4;
 
+type CompararSearchParams = { ids?: string; error?: string; message?: string };
+
 export default async function CompararPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ids?: string }>;
+  searchParams: Promise<CompararSearchParams>;
 }) {
-  const { ids: idsParam } = await searchParams;
+  const { ids: idsParam, error: errorParam, message: messageParam } = await searchParams;
 
   const ids = (idsParam ?? '')
     .split(',')
@@ -56,22 +61,29 @@ export default async function CompararPage({
 
   const supabase = await createClient();
 
-  const [{ data: laptops, error: lapErr }, { data: specsData }, { data: pricesData }] =
-    await Promise.all([
-      supabase.from('laptops').select('id, slug, brand, model, year').in('id', ids).returns<LaptopRow[]>(),
-      supabase
-        .from('specs')
-        .select(
-          'laptop_id, cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, weight_kg, battery_wh, ports, os',
-        )
-        .in('laptop_id', ids)
-        .returns<SpecRow[]>(),
-      supabase
-        .from('prices_history')
-        .select('laptop_id, price_eur')
-        .in('laptop_id', ids)
-        .returns<PriceRow[]>(),
-    ]);
+  const [
+    {
+      data: { user },
+    },
+    { data: laptops, error: lapErr },
+    { data: specsData },
+    { data: pricesData },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('laptops').select('id, slug, brand, model, year').in('id', ids).returns<LaptopRow[]>(),
+    supabase
+      .from('specs')
+      .select(
+        'laptop_id, cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, weight_kg, battery_wh, ports, os',
+      )
+      .in('laptop_id', ids)
+      .returns<SpecRow[]>(),
+    supabase
+      .from('prices_history')
+      .select('laptop_id, price_eur')
+      .in('laptop_id', ids)
+      .returns<PriceRow[]>(),
+  ]);
 
   if (lapErr) {
     return (
@@ -102,12 +114,52 @@ export default async function CompararPage({
   return (
     <main className="mx-auto max-w-6xl p-8">
       <BackHome />
-      <header className="mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight">Comparativa</h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          {ordered.length} portátiles · diferencias resaltadas en azul.
-        </p>
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Comparativa</h1>
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+            {ordered.length} portátiles · diferencias resaltadas en azul.
+          </p>
+        </div>
+
+        {user ? (
+          <form action={saveComparison} className="flex flex-wrap items-end gap-2">
+            <input type="hidden" name="ids" value={ordered.map((l) => l.id).join(',')} />
+            <div>
+              <label htmlFor="comparison-name" className="block text-xs text-zinc-500">
+                Nombre (opcional)
+              </label>
+              <input
+                id="comparison-name"
+                name="name"
+                type="text"
+                maxLength={100}
+                placeholder="ej: ultrabooks 14 pulgadas"
+                className="mt-1 block w-64 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+              />
+            </div>
+            <SubmitButton pendingText="Guardando…">Guardar comparativa</SubmitButton>
+          </form>
+        ) : (
+          <p className="text-xs text-zinc-500">
+            <Link href="/login" className="underline hover:text-zinc-900 dark:hover:text-zinc-100">
+              Inicia sesión
+            </Link>{' '}
+            para guardar esta comparativa.
+          </p>
+        )}
       </header>
+
+      {messageParam && (
+        <div className="mb-4 rounded-md border border-green-300 bg-green-50 p-3 text-sm text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-100">
+          {messageParam}
+        </div>
+      )}
+      {errorParam && (
+        <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
+          {errorParam}
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">

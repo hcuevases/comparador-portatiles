@@ -1,0 +1,64 @@
+import Link from 'next/link';
+
+import { signOut } from '@/app/(auth)/actions';
+import { createClient } from '@/lib/supabase/server';
+
+/**
+ * NavBar global. Server Component: lee la sesión con cookies sin pasar por
+ * el cliente. El botón de Logout dispara la server action `signOut`.
+ *
+ * Se renderiza dentro del root layout, así que aparece en todas las rutas.
+ */
+export async function NavBar() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return (
+    <header className="border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-8 py-3">
+        <Link href="/" className="text-sm font-medium tracking-tight">
+          Comparador
+        </Link>
+
+        <nav className="flex items-center gap-4 text-sm">
+          {user ? (
+            <>
+              <Link
+                href="/mis-comparativas"
+                className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Mis comparativas
+              </Link>
+              <span className="hidden text-xs text-zinc-500 sm:inline">{user.email}</span>
+              <form action={signOut}>
+                <button
+                  type="submit"
+                  className="rounded-md border border-zinc-300 px-3 py-1 text-xs text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                >
+                  Cerrar sesión
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Iniciar sesión
+              </Link>
+              <Link
+                href="/signup"
+                className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
+              >
+                Crear cuenta
+              </Link>
+            </>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+}
