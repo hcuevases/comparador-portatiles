@@ -38,12 +38,18 @@ const { values: args } = parseArgs({
     limit: { type: 'string', default: '5' },
     'dry-run': { type: 'boolean', default: false },
     'discover-categories': { type: 'boolean', default: false },
+    // Modo cron diario: solo refresca prices_history para los slugs ya
+    // existentes en BD. Salta laptops/specs/affiliate_links. Más rápido y
+    // no añade catálogo nuevo (eso se hace con el modo completo, p. ej.
+    // desde el cron semanal).
+    'prices-only': { type: 'boolean', default: false },
   },
 });
 
 const LIMIT = Number(args.limit);
 const DRY_RUN = args['dry-run'];
 const DISCOVER_CATS = args['discover-categories'];
+const PRICES_ONLY = args['prices-only'];
 
 if (!Number.isFinite(LIMIT) || LIMIT < 1) {
   throw new Error('--limit debe ser un número positivo');
@@ -345,6 +351,55 @@ async function getOrCreateRetailerId(): Promise<string> {
   return created.id;
 }
 
+/**
+ * Inserta un punto de precio en prices_history dado un laptop_id ya existente.
+ * Función compartida por el modo completo y por el modo --prices-only.
+ */
+async function insertPriceHistory(
+  laptopId: string,
+  retailerId: string,
+  priceEur: number,
+): Promise<void> {
+  const pricePayload: TablesInsert<'prices_history'> = {
+    laptop_id: laptopId,
+    retailer_id: retailerId,
+    price_eur: priceEur,
+    in_stock: true,
+  };
+  await supabase.from('prices_history').insert([pricePayload]);
+}
+
+/**
+ * Modo --prices-only: busca el laptop por slug; si existe, añade un punto de
+ * precio. Si no existe, lo salta (no añadimos catálogo nuevo desde el cron
+ * diario; eso lo hace el cron semanal con upsert completo).
+ *
+ * Devuelve true si insertó precio, false si se saltó.
+ */
+async function refreshPriceOnly(detail: LaptopDetail, retailerId: string): Promise<boolean> {
+  if (detail.priceEur === null) return false;
+
+  if (DRY_RUN) {
+    console.log(`  [dry-run prices-only] ${detail.brand} ${detail.model} — ${detail.priceEur}€`);
+    return true;
+  }
+
+  const { data: laptop } = await supabase
+    .from('laptops')
+    .select('id')
+    .eq('slug', detail.slug)
+    .maybeSingle();
+
+  if (!laptop) {
+    // Slug no está en BD — lo saltamos (catálogo nuevo no entra por aquí).
+    return false;
+  }
+
+  await insertPriceHistory(laptop.id, retailerId, detail.priceEur);
+  console.log(`  ✓ ${detail.brand} ${detail.model} — ${detail.priceEur}€`);
+  return true;
+}
+
 async function upsertLaptop(detail: LaptopDetail, retailerId: string): Promise<void> {
   if (DRY_RUN) {
     console.log(`  [dry-run] ${detail.brand} ${detail.model} — ${detail.priceEur ?? '?'}€`);
@@ -406,13 +461,7 @@ async function upsertLaptop(detail: LaptopDetail, retailerId: string): Promise<v
 
   // Precio actual en prices_history (siempre nuevo punto en el tiempo)
   if (detail.priceEur !== null) {
-    const pricePayload: TablesInsert<'prices_history'> = {
-      laptop_id: laptop.id,
-      retailer_id: retailerId,
-      price_eur: detail.priceEur,
-      in_stock: true,
-    };
-    await supabase.from('prices_history').insert([pricePayload]);
+    await insertPriceHistory(laptop.id, retailerId, detail.priceEur);
   }
 
   console.log(`  ✓ ${detail.brand} ${detail.model} — ${detail.priceEur ?? '?'}€`);
@@ -470,7 +519,10 @@ async function main() {
     return;
   }
 
-  console.log(`🚀 Ingesta de catálogo PcComponentes vía Algolia (limit=${LIMIT}, dry-run=${DRY_RUN})`);
+  const mode = PRICES_ONLY ? 'prices-only' : 'completo';
+  console.log(
+    `🚀 Ingesta PcComponentes (modo=${mode}, limit=${LIMIT}, dry-run=${DRY_RUN})`,
+  );
 
   const retailerId = DRY_RUN ? 'dry-run' : await getOrCreateRetailerId();
   if (!DRY_RUN) console.log(`   retailer_id: ${retailerId}`);
@@ -478,6 +530,7 @@ async function main() {
   let page = 0;
   let processed = 0;
   let ok = 0;
+  let skipped = 0;
   let fail = 0;
   let firstCall = true;
 
@@ -500,10 +553,16 @@ async function main() {
         continue;
       }
       try {
-        await upsertLaptop(detail, retailerId);
-        ok += 1;
+        if (PRICES_ONLY) {
+          const inserted = await refreshPriceOnly(detail, retailerId);
+          if (inserted) ok += 1;
+          else skipped += 1;
+        } else {
+          await upsertLaptop(detail, retailerId);
+          ok += 1;
+        }
       } catch (err) {
-        console.error(`  ✗ Excepción upsert: ${(err as Error).message}`);
+        console.error(`  ✗ Excepción: ${(err as Error).message}`);
         fail += 1;
       }
     }
@@ -514,7 +573,8 @@ async function main() {
     await sleep(300);
   }
 
-  console.log(`\n✅ Hecho: ${ok} ok, ${fail} fallidos (${processed} procesados)`);
+  const skippedSuffix = PRICES_ONLY ? `, ${skipped} saltados (no en BD)` : '';
+  console.log(`\n✅ Hecho: ${ok} ok, ${fail} fallidos${skippedSuffix} (${processed} procesados)`);
 }
 
 main().catch((err) => {

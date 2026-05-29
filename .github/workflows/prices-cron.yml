@@ -1,0 +1,43 @@
+# Cron diario que refresca prices_history para los portátiles ya existentes
+# en BD. Reutiliza scripts/scrape-catalog.ts en modo --prices-only:
+# - Salta laptops/specs/affiliate_links (no añade catálogo nuevo).
+# - Añade un punto a prices_history por cada slug ya en BD.
+#
+# El catálogo crece sólo cuando el cron semanal (catalog-cron.yml) o un run
+# manual local corre el modo completo.
+name: Refrescar precios (diario)
+
+on:
+  schedule:
+    # 06:00 UTC = 07:00 invierno / 08:00 verano en España. Hora valle.
+    - cron: '0 6 * * *'
+  # Permite dispararlo desde la UI de Actions (útil para validar tras merge).
+  workflow_dispatch:
+
+# Si el run anterior aún corre, cancela y arranca el nuevo. Evita acumulación.
+concurrency:
+  group: prices-cron
+  cancel-in-progress: true
+
+jobs:
+  refresh-prices:
+    name: Refrescar prices_history
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Refrescar precios (limit=500)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        # 500 cubre todo el catálogo actual (~100) con muchísimo margen.
+        # Cuando crezca a miles, subir aquí y/o reducir frecuencia.
+        run: npm run scrape:catalog -- --prices-only --limit 500
