@@ -1,0 +1,40 @@
+# Cron semanal que refresca el catálogo completo: upsert de laptops, specs,
+# affiliate_links y un punto de precio. AÑADE productos nuevos que hayan
+# entrado en PcComponentes desde la última vez.
+#
+# Frecuencia más baja que el de precios porque los catálogos no cambian tanto
+# y porque añadir productos masivamente sin revisión puede ensuciar la BD.
+name: Refrescar catálogo (semanal)
+
+on:
+  schedule:
+    # Domingo 04:00 UTC = 05:00 invierno / 06:00 verano en España.
+    - cron: '0 4 * * 0'
+  workflow_dispatch:
+
+concurrency:
+  group: catalog-cron
+  cancel-in-progress: true
+
+jobs:
+  refresh-catalog:
+    name: Refrescar catálogo completo
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Refrescar catálogo (limit=500)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        # Tope alto para captar productos nuevos. PcComponentes tiene 3,690
+        # portátiles totales; 500 cubre los top-vendidos por relevancia.
+        run: npm run scrape:catalog -- --limit 500
