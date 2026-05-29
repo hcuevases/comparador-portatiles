@@ -65,11 +65,14 @@ export default async function Home({
   }
 
   // 3) Query principal de laptops con filtros de texto/marca.
+  // Tope alto para mostrar el catálogo completo sin paginar (de momento).
+  // Con el catálogo ya rondando los 100+ portátiles, un día tendremos que
+  // meter paginación real con offset/keyset; pendiente.
   let query = supabase
     .from('laptops')
     .select('id, slug, brand, model, year')
     .order('brand', { ascending: true })
-    .limit(50);
+    .limit(500);
 
   if (q) {
     // ilike es case-insensitive; .or compone "brand ILIKE ... OR model ILIKE ..."

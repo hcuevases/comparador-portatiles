@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# debug del scraper (capturas, HTML y dumps de estado temporales)
+scrape-debug-*.html
+scrape-debug-*.png
+scrape-debug-*.json
