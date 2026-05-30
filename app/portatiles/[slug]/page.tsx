@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -215,18 +216,34 @@ export default async function LaptopDetailPage({
         </Link>
       </nav>
 
-      <header className="mb-8">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">{laptop.brand}</p>
-        <h1 className="text-3xl font-semibold tracking-tight">{laptop.model}</h1>
-        {laptop.year && (
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{laptop.year}</p>
+      <header className="mb-8 grid gap-6 sm:grid-cols-[auto_1fr] sm:items-start">
+        {laptop.image_url && (
+          <div className="relative h-56 w-56 shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+            <Image
+              src={laptop.image_url}
+              alt={`${laptop.brand} ${laptop.model}`}
+              fill
+              sizes="224px"
+              className="object-contain p-2"
+              priority
+            />
+          </div>
         )}
-        {laptop.description && (
-          <p className="mt-4 max-w-2xl text-zinc-700 dark:text-zinc-300">{laptop.description}</p>
-        )}
-        {minPrice !== null && (
-          <p className="mt-4 text-lg font-medium">Desde {formatEur(minPrice)}</p>
-        )}
+        <div>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{laptop.brand}</p>
+          <h1 className="text-3xl font-semibold tracking-tight">{laptop.model}</h1>
+          {laptop.year && (
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{laptop.year}</p>
+          )}
+          {laptop.description && (
+            <p className="mt-4 max-w-2xl text-zinc-700 dark:text-zinc-300">
+              {laptop.description}
+            </p>
+          )}
+          {minPrice !== null && (
+            <p className="mt-4 text-lg font-medium">Desde {formatEur(minPrice)}</p>
+          )}
+        </div>
       </header>
 
       {retailerCards.length > 0 && (

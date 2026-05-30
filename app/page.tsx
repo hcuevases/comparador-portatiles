@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 
 // Derivados del esquema generado por `supabase gen types`. Si una columna
 // cambia, TS revienta aquí — no hay que sincronizar tipos a mano.
-type LaptopRow = Pick<Tables<'laptops'>, 'id' | 'slug' | 'brand' | 'model' | 'year'>;
+type LaptopRow = Pick<Tables<'laptops'>, 'id' | 'slug' | 'brand' | 'model' | 'year' | 'image_url'>;
 type SpecRow = Pick<
   Tables<'specs'>,
   'laptop_id' | 'cpu' | 'ram_gb' | 'storage_gb' | 'screen_inches' | 'weight_kg'
@@ -70,7 +70,7 @@ export default async function Home({
   // meter paginación real con offset/keyset; pendiente.
   let query = supabase
     .from('laptops')
-    .select('id, slug, brand, model, year')
+    .select('id, slug, brand, model, year, image_url')
     .order('brand', { ascending: true })
     .limit(500);
 
@@ -107,7 +107,14 @@ export default async function Home({
     supabase
       .from('prices_history')
       .select('laptop_id, price_eur')
-      .in('laptop_id', ids)
+      // Sin .in() — con cientos de UUIDs el query string supera los ~8KB que
+      // PostgREST acepta y algunos IDs se cortan silenciosamente, dejando
+      // laptops "sin precio" en el frontend aunque sí los tengan en BD.
+      // Traemos todo y filtramos en cliente (el Map solo consulta los ids del
+      // scope actual). TODO crítico: cuando prices_history pase de 10-20k
+      // filas, mover a RPC `min_price_by_laptop(ids uuid[])` en Supabase
+      // que devuelva ya agregado server-side.
+      .limit(50_000)
       .returns<PriceRow[]>(),
   ]);
 
@@ -147,6 +154,7 @@ function renderPage(
     brand: l.brand,
     model: l.model,
     year: l.year,
+    image_url: l.image_url,
     specs: specsByLaptop.get(l.id) ?? null,
     minPriceEur: minPriceByLaptop.get(l.id) ?? null,
   }));
