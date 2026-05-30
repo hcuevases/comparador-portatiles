@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -12,7 +13,10 @@ type CardSpecs = Pick<
   'cpu' | 'ram_gb' | 'storage_gb' | 'screen_inches' | 'weight_kg'
 >;
 
-export type LaptopCard = Pick<Tables<'laptops'>, 'id' | 'slug' | 'brand' | 'model' | 'year'> & {
+export type LaptopCard = Pick<
+  Tables<'laptops'>,
+  'id' | 'slug' | 'brand' | 'model' | 'year' | 'image_url'
+> & {
   specs: CardSpecs | null;
   minPriceEur: number | null;
 };
@@ -77,8 +81,28 @@ export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
 
               <Link
                 href={`/portatiles/${l.slug}`}
-                className="block p-4 pr-24 hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40"
+                className="block hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40"
               >
+                {/* Imagen del producto (con fallback si no hay). Altura fija
+                    para que las cards estén alineadas independientemente del
+                    aspect ratio de cada imagen. object-contain para no recortar. */}
+                <div className="relative h-40 w-full overflow-hidden rounded-t-lg bg-zinc-50 dark:bg-zinc-900">
+                  {l.image_url ? (
+                    <Image
+                      src={l.image_url}
+                      alt={`${l.brand} ${l.model}`}
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-contain p-3"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-xs text-zinc-400">
+                      Sin imagen
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 pr-24">
                 <div className="min-w-0">
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">{l.brand}</p>
                   <h2 className="truncate text-lg font-medium leading-tight">{l.model}</h2>
@@ -127,6 +151,7 @@ export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
                 ) : (
                   <p className="mt-3 text-xs text-zinc-400">Sin precio aún</p>
                 )}
+                </div>
               </Link>
             </li>
           );

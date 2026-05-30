@@ -233,9 +233,17 @@ function mapHit(hit: AlgoliaHit): LaptopDetail | null {
   const price = asNumber(hit.price);
   const description = asString(hit.description);
 
-  // images = { large, medium, small } o lista de URLs. Preferimos large.
-  const imagesObj = hit.images as { large?: string; medium?: string; small?: string } | undefined;
-  const imageUrl = asString(imagesObj?.large ?? imagesObj?.medium ?? imagesObj?.small ?? null);
+  // images = { large: {path, width, height}, medium: {...}, small: {...} }.
+  // Cada size es un objeto con `path` (URL del CDN thumb.pccomponentes.com),
+  // no un string suelto. Preferimos large (530x530); next/image lo redimensiona.
+  type ImageVariant = { path?: string; width?: number; height?: number };
+  const imagesObj = hit.images as
+    | { large?: ImageVariant; medium?: ImageVariant; small?: ImageVariant }
+    | undefined;
+  const imageUrl =
+    asString(imagesObj?.large?.path) ??
+    asString(imagesObj?.medium?.path) ??
+    asString(imagesObj?.small?.path);
 
   // PcComponentes guarda todos los specs estructurados en `filtersWithGroup`,
   // con formato '<groupId>:<groupName>:<filterId>:<filterValue>:TYPE:meta'.
