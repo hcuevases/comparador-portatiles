@@ -39,10 +39,15 @@ type Specs = Pick<
   | 'screen_inches'
   | 'screen_resolution'
   | 'screen_refresh_hz'
+  | 'screen_panel_type'
   | 'weight_kg'
   | 'battery_wh'
   | 'ports'
   | 'os'
+  | 'usage_type'
+  | 'keyboard_lang'
+  | 'ai_optimized'
+  | 'product_line'
 >;
 type Retailer = Pick<Tables<'retailers'>, 'id' | 'slug' | 'name'>;
 type AffiliateLink = Pick<Tables<'affiliate_links'>, 'id' | 'retailer_id' | 'url'>;
@@ -109,7 +114,7 @@ export default async function LaptopDetailPage({
       supabase
         .from('specs')
         .select(
-          'cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, weight_kg, battery_wh, ports, os',
+          'cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, screen_panel_type, weight_kg, battery_wh, ports, os, usage_type, keyboard_lang, ai_optimized, product_line',
         )
         .eq('laptop_id', laptop.id)
         .maybeSingle<Specs>(),
@@ -326,6 +331,7 @@ export default async function LaptopDetailPage({
                   : null
               }
             />
+            <SpecRow label="Tipo de panel" value={specs.screen_panel_type} />
             <SpecRow label="Peso" value={specs.weight_kg ? `${specs.weight_kg} kg` : null} />
             <SpecRow
               label="Batería"
@@ -336,6 +342,13 @@ export default async function LaptopDetailPage({
               value={specs.ports && specs.ports.length > 0 ? specs.ports.join(', ') : null}
             />
             <SpecRow label="Sistema" value={specs.os} />
+            <SpecRow label="Tipo de uso" value={specs.usage_type} />
+            <SpecRow label="Gama" value={specs.product_line} />
+            <SpecRow label="Idioma del teclado" value={specs.keyboard_lang} />
+            <SpecRow
+              label="Optimizado para IA"
+              value={specs.ai_optimized === true ? 'Sí' : null}
+            />
           </dl>
         </section>
       )}

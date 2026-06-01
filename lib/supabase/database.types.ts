@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -202,57 +202,72 @@ export type Database = {
       }
       specs: {
         Row: {
+          ai_optimized: boolean | null
           battery_wh: number | null
           cpu: string | null
           cpu_cores: number | null
           gpu: string | null
           gpu_vram_gb: number | null
+          keyboard_lang: string | null
           laptop_id: string
           os: string | null
           ports: string[] | null
+          product_line: string | null
           ram_gb: number | null
           screen_inches: number | null
+          screen_panel_type: string | null
           screen_refresh_hz: number | null
           screen_resolution: string | null
           storage_gb: number | null
           storage_type: string | null
           updated_at: string
+          usage_type: string | null
           weight_kg: number | null
         }
         Insert: {
+          ai_optimized?: boolean | null
           battery_wh?: number | null
           cpu?: string | null
           cpu_cores?: number | null
           gpu?: string | null
           gpu_vram_gb?: number | null
+          keyboard_lang?: string | null
           laptop_id: string
           os?: string | null
           ports?: string[] | null
+          product_line?: string | null
           ram_gb?: number | null
           screen_inches?: number | null
+          screen_panel_type?: string | null
           screen_refresh_hz?: number | null
           screen_resolution?: string | null
           storage_gb?: number | null
           storage_type?: string | null
           updated_at?: string
+          usage_type?: string | null
           weight_kg?: number | null
         }
         Update: {
+          ai_optimized?: boolean | null
           battery_wh?: number | null
           cpu?: string | null
           cpu_cores?: number | null
           gpu?: string | null
           gpu_vram_gb?: number | null
+          keyboard_lang?: string | null
           laptop_id?: string
           os?: string | null
           ports?: string[] | null
+          product_line?: string | null
           ram_gb?: number | null
           screen_inches?: number | null
+          screen_panel_type?: string | null
           screen_refresh_hz?: number | null
           screen_resolution?: string | null
           storage_gb?: number | null
           storage_type?: string | null
           updated_at?: string
+          usage_type?: string | null
           weight_kg?: number | null
         }
         Relationships: [
