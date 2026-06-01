@@ -23,10 +23,13 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
   const [priceMax, setPriceMax] = useState(searchParams.get('price_max') ?? '');
 
   // Empuja un único par key/value al URL. Declarado antes de los useEffect que lo usan.
+  // Cualquier cambio de filtro resetea `page` para evitar quedarse en una página
+  // que ya no existe tras filtrar.
   function pushParam(key: string, value: string | null) {
     const params = new URLSearchParams(searchParams.toString());
     if (value === null || value === '') params.delete(key);
     else params.set(key, value);
+    params.delete('page');
     const next = params.toString();
     startTransition(() => {
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
@@ -54,6 +57,7 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
     else current.add(brand);
     if (current.size === 0) params.delete('brand');
     else params.set('brand', Array.from(current).join(','));
+    params.delete('page');
     const next = params.toString();
     startTransition(() => {
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
