@@ -21,10 +21,13 @@ type SpecRow = Pick<
   | 'screen_inches'
   | 'screen_resolution'
   | 'screen_refresh_hz'
+  | 'screen_panel_type'
   | 'weight_kg'
   | 'battery_wh'
   | 'ports'
   | 'os'
+  | 'usage_type'
+  | 'product_line'
 >;
 type PriceRow = Pick<Tables<'prices_history'>, 'laptop_id' | 'price_eur'>;
 
@@ -74,7 +77,7 @@ export default async function CompararPage({
     supabase
       .from('specs')
       .select(
-        'laptop_id, cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, weight_kg, battery_wh, ports, os',
+        'laptop_id, cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, screen_panel_type, weight_kg, battery_wh, ports, os, usage_type, product_line',
       )
       .in('laptop_id', ids)
       .returns<SpecRow[]>(),
@@ -283,6 +286,7 @@ function buildRows(
         return parts.join(' · ');
       }),
     },
+    { label: 'Tipo de panel', values: laptops.map((l) => get(l.id, 'screen_panel_type')) },
     {
       label: 'Peso',
       values: laptops.map((l) => {
@@ -299,6 +303,8 @@ function buildRows(
     },
     { label: 'Puertos', values: laptops.map((l) => get(l.id, 'ports')) },
     { label: 'SO', values: laptops.map((l) => get(l.id, 'os')) },
+    { label: 'Tipo de uso', values: laptops.map((l) => get(l.id, 'usage_type')) },
+    { label: 'Gama', values: laptops.map((l) => get(l.id, 'product_line')) },
   ];
 }
 

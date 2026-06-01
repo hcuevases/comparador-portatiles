@@ -38,6 +38,10 @@ const { values: args } = parseArgs({
     limit: { type: 'string', default: '5' },
     'dry-run': { type: 'boolean', default: false },
     'discover-categories': { type: 'boolean', default: false },
+    // Pide a Algolia todos los facets (`facets:['*']`) sobre el filtro de
+    // Portátiles. Útil para saber qué atributos están indexados antes de
+    // decidir qué nuevos campos extraer.
+    'discover-attrs': { type: 'boolean', default: false },
     // Modo cron diario: solo refresca prices_history para los slugs ya
     // existentes en BD. Salta laptops/specs/affiliate_links. Más rápido y
     // no añade catálogo nuevo (eso se hace con el modo completo, p. ej.
@@ -49,6 +53,7 @@ const { values: args } = parseArgs({
 const LIMIT = Number(args.limit);
 const DRY_RUN = args['dry-run'];
 const DISCOVER_CATS = args['discover-categories'];
+const DISCOVER_ATTRS = args['discover-attrs'];
 const PRICES_ONLY = args['prices-only'];
 
 if (!Number.isFinite(LIMIT) || LIMIT < 1) {
@@ -286,6 +291,13 @@ function mapHit(hit: AlgoliaHit): LaptopDetail | null {
   const batteryRaw = attr('bateria', 'batería');
   const osRaw = attr('modelo sistema operativo', 'sistema operativo', 'so');
 
+  // Campos nuevos disponibles en filtersWithGroup (migración 0006).
+  const screenPanelRaw = attr('tipo pantalla', 'tipo de pantalla');
+  const usageRaw = attr('tipo de portatil', 'tipo de portátil');
+  const keyboardRaw = attr('idioma del teclado', 'teclado');
+  const aiRaw = attr('inteligencia artificial');
+  const productLineRaw = attr('gama');
+
   // Marca al inicio del nombre. PcComponentes mete a veces "Portátil" delante,
   // así que primero quitamos esa palabra introductoria y luego intentamos quitar
   // la marca si está al inicio. Resultado: modelo limpio.
@@ -316,10 +328,28 @@ function mapHit(hit: AlgoliaHit): LaptopDetail | null {
       battery_wh: asNumber(batteryRaw),
       ports: null, // PcComponentes no expone esto en topAttributes
       os: osRaw,
+      // Campos nuevos (migración 0006).
+      screen_panel_type: screenPanelRaw,
+      usage_type: usageRaw,
+      keyboard_lang: normalizeKeyboardLang(keyboardRaw),
+      // Algolia marca "Orientados a IA" o "IA integrada" como valores
+      // distintos del grupo. Cualquiera de los dos lo consideramos `true`.
+      ai_optimized: aiRaw ? true : null,
+      product_line: productLineRaw,
     },
     priceEur: price,
     affiliateUrl: `${BASE}/${slug}`,
   };
+}
+
+/**
+ * Algolia da el idioma como "Teclados ES", "Teclados FR", etc. Devolvemos
+ * solo el código de dos letras ("ES", "FR") para tener una columna limpia.
+ */
+function normalizeKeyboardLang(raw: string | null): string | null {
+  if (!raw) return null;
+  const m = raw.match(/\b([A-Z]{2})\b/);
+  return m ? m[1] : null;
 }
 
 function normalize(s: string): string {
@@ -520,10 +550,78 @@ async function discoverCategories(): Promise<void> {
   }
 }
 
+/**
+ * Lista TODOS los atributos facetables del índice cuando filtramos por la
+ * categoría de portátiles. Útil para decidir qué nuevos campos extraer en
+ * el parser sin tener que adivinar mirando dumps individuales.
+ */
+async function discoverAttributes(): Promise<void> {
+  const url = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX}/query`;
+  // maxValuesPerFacet alto para que filtersWithGroup nos devuelva TODOS los
+  // valores únicos (no solo el top 5). Es donde están enterrados los grupos
+  // de specs (cores, vram, refresh, etc.).
+  const body = {
+    query: '',
+    filters: CATEGORY_FILTER,
+    hitsPerPage: 0,
+    facets: ['filtersWithGroup'],
+    maxValuesPerFacet: 1000,
+  };
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Algolia-Application-Id': ALGOLIA_APP_ID,
+      'X-Algolia-API-Key': ALGOLIA_API_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`Algolia ${res.status}: ${(await res.text()).slice(0, 500)}`);
+  }
+  const data = (await res.json()) as {
+    nbHits?: number;
+    facets?: Record<string, Record<string, number>>;
+  };
+
+  console.log(`Total productos: ${data.nbHits}\n`);
+
+  const fwg = data.facets?.['filtersWithGroup'] ?? {};
+  // Agrupar valores únicos por groupName. Cada entry es
+  // '<groupId>:<groupName>:<filterId>:<filterValue>:TYPE:meta'.
+  const byGroup: Record<string, { coverage: number; values: Array<{ value: string; count: number }> }> = {};
+  for (const [raw, count] of Object.entries(fwg)) {
+    const parts = raw.split(':');
+    if (parts.length < 4) continue;
+    const groupName = parts[1];
+    const filterValue = parts[3];
+    if (!byGroup[groupName]) byGroup[groupName] = { coverage: 0, values: [] };
+    byGroup[groupName].coverage += count;
+    byGroup[groupName].values.push({ value: filterValue, count });
+  }
+
+  const sortedGroups = Object.entries(byGroup).sort((a, b) => b[1].coverage - a[1].coverage);
+  console.log(`Grupos únicos en filtersWithGroup: ${sortedGroups.length}\n`);
+  for (const [groupName, info] of sortedGroups) {
+    const top = info.values
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+      .map((v) => `${v.value} (${v.count})`)
+      .join(', ');
+    console.log(`  [${groupName}]  cobertura: ${info.coverage}  · ${info.values.length} valores`);
+    console.log(`    top: ${top}`);
+  }
+}
+
 async function main() {
   if (DISCOVER_CATS) {
     console.log('🔎 Descubriendo categorías (no se escribe nada en DB)\n');
     await discoverCategories();
+    return;
+  }
+  if (DISCOVER_ATTRS) {
+    console.log('🔎 Descubriendo atributos del índice (no se escribe nada en DB)\n');
+    await discoverAttributes();
     return;
   }
 
