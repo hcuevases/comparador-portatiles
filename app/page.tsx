@@ -1,5 +1,6 @@
 import { LaptopFilters } from '@/components/laptop-filters';
 import { LaptopGrid, type LaptopCard } from '@/components/laptop-grid';
+import { Pagination } from '@/components/pagination';
 import type { Tables } from '@/lib/supabase/database.types';
 import { createClient } from '@/lib/supabase/server';
 
@@ -17,8 +18,11 @@ type SearchParams = {
   brand?: string;
   ram_min?: string;
   price_max?: string;
+  page?: string;
   message?: string;
 };
+
+const PAGE_SIZE = 24;
 
 export default async function Home({
   searchParams,
@@ -31,6 +35,7 @@ export default async function Home({
   const ramMin = Number(params.ram_min) || 0;
   const priceMax = Number(params.price_max) || Number.POSITIVE_INFINITY;
   const message = params.message;
+  const page = Math.max(1, Number(params.page) || 1);
 
   const supabase = await createClient();
 
@@ -60,19 +65,21 @@ export default async function Home({
       .returns<{ laptop_id: string }[]>();
     allowedIds = (specIds ?? []).map((s) => s.laptop_id);
     if (allowedIds.length === 0) {
-      return renderPage([], new Map(), new Map(), allBrands);
+      return renderPage([], new Map(), new Map(), allBrands, 0, page, 1, params);
     }
   }
 
-  // 3) Query principal de laptops con filtros de texto/marca.
-  // Tope alto para mostrar el catálogo completo sin paginar (de momento).
-  // Con el catálogo ya rondando los 100+ portátiles, un día tendremos que
-  // meter paginación real con offset/keyset; pendiente.
+  // 3) Query principal de laptops con filtros de texto/marca + paginación
+  //    server-side via range(). `count: 'exact'` devuelve el total filtrado
+  //    para poder calcular total de páginas.
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
   let query = supabase
     .from('laptops')
-    .select('id, slug, brand, model, year, image_url')
+    .select('id, slug, brand, model, year, image_url', { count: 'exact' })
     .order('brand', { ascending: true })
-    .limit(500);
+    .order('id', { ascending: true }) // tiebreaker estable para que la paginación no baile
+    .range(from, to);
 
   if (q) {
     // ilike es case-insensitive; .or compone "brand ILIKE ... OR model ILIKE ..."
@@ -86,7 +93,8 @@ export default async function Home({
     query = query.in('id', allowedIds);
   }
 
-  const { data: laptops, error: laptopsErr } = await query.returns<LaptopRow[]>();
+  const { data: laptops, error: laptopsErr, count: totalCount } =
+    await query.returns<LaptopRow[]>();
 
   if (laptopsErr) {
     return (
@@ -129,7 +137,11 @@ export default async function Home({
     }
   }
 
-  // 4) Filtro de precio máximo (cliente-side: requiere min price ya calculado).
+  // 4) Filtro de precio máximo: client-side sobre la página actual. Aún no
+  //    tenemos un agregado server-side de min(price); cuando hagamos la RPC
+  //    `min_price_by_laptop` lo movemos al WHERE y el conteo total será exacto.
+  //    Limitación actual: con filtro de precio activo, una página puede
+  //    mostrar < PAGE_SIZE items y el total estará sobreestimado.
   let filteredLaptops = laptops ?? [];
   if (priceMax !== Number.POSITIVE_INFINITY) {
     filteredLaptops = filteredLaptops.filter((l) => {
@@ -138,7 +150,19 @@ export default async function Home({
     });
   }
 
-  return renderPage(filteredLaptops, specsByLaptop, minPriceByLaptop, allBrands, message);
+  const totalPages = Math.max(1, Math.ceil((totalCount ?? 0) / PAGE_SIZE));
+
+  return renderPage(
+    filteredLaptops,
+    specsByLaptop,
+    minPriceByLaptop,
+    allBrands,
+    totalCount ?? 0,
+    page,
+    totalPages,
+    params,
+    message,
+  );
 }
 
 function renderPage(
@@ -146,6 +170,10 @@ function renderPage(
   specsByLaptop: Map<string, SpecRow>,
   minPriceByLaptop: Map<string, number>,
   allBrands: string[],
+  totalCount: number,
+  currentPage: number,
+  totalPages: number,
+  searchParams: SearchParams,
   message?: string,
 ) {
   const cards: LaptopCard[] = filteredLaptops.map((l) => ({
@@ -177,12 +205,19 @@ function renderPage(
       <LaptopFilters brands={allBrands} />
 
       <p className="mb-4 text-xs text-zinc-500">
-        {cards.length === 0
+        {totalCount === 0
           ? 'Sin resultados con los filtros actuales.'
-          : `${cards.length} ${cards.length === 1 ? 'portátil' : 'portátiles'} encontrados.`}
+          : `${totalCount} ${totalCount === 1 ? 'portátil' : 'portátiles'} en total · página ${currentPage} de ${totalPages}`}
       </p>
 
       {cards.length === 0 ? <EmptyState /> : <LaptopGrid laptops={cards} />}
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        basePath="/"
+        searchParams={searchParams}
+      />
     </main>
   );
 }
