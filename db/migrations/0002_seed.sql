@@ -1,4 +1,17 @@
 -- 0002_seed.sql
+--
+-- ⚠️  DEPRECADA — no volver a aplicar.
+--
+-- Datos de prueba que metimos al arrancar (6 portátiles a mano + 4 retailers)
+-- para validar la integración end-to-end ANTES de tener el scraper.
+-- A día de hoy el catálogo se llena con `scripts/scrape-catalog.ts` desde
+-- PcComponentes (cientos de portátiles reales). Los 6 portátiles seed se
+-- borran en `0005_cleanup_initial_seed.sql`.
+--
+-- Se conserva esta migración como registro histórico, no se vuelve a aplicar.
+-- Si por error la corres, no rompe nada — solo reinsertaría los 6 portátiles
+-- huérfanos que después tendrías que volver a limpiar.
+--
 -- Datos de prueba para validar la integración end-to-end.
 -- Idempotente para las tablas con unique constraint: si rerruns, no duplica.
 -- prices_history sí duplica si rerruns (no tiene unique).
