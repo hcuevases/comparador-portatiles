@@ -1,4 +1,17 @@
 -- 0003_seed_price_history.sql
+--
+-- ⚠️  DEPRECADA — no volver a aplicar.
+--
+-- Esta migración generaba 90 días sintéticos de histórico para los 6 portátiles
+-- seed. Tenía sentido cuando el catálogo era ese seed; ahora con el cron diario
+-- (`.github/workflows/prices-cron.yml`) los precios reales se actualizan a
+-- diario y este random walk solo añade ruido histórico a productos que ya no
+-- existen (los 6 originales se borran en `0005_cleanup_initial_seed.sql`).
+--
+-- Se conserva como registro histórico, no se vuelve a aplicar. Aplicarla por
+-- error BORRARÍA todos los precios reales que ha ido acumulando el cron (lee
+-- la lógica del `delete from public.prices_history` más abajo).
+--
 -- Genera 90 días de histórico sintético por cada (laptop, retailer) que
 -- tenga un precio "actual" registrado. La serie es un random walk con drift
 -- suave hacia el precio actual, acotado a [70%, 130%] del actual para evitar
