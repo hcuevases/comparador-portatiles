@@ -11,6 +11,13 @@ type Props = {
 const DEFAULT_RAM_OPTIONS = [8, 16, 32];
 const DEBOUNCE_MS = 300;
 
+// Pills booleanas sobre columnas de `specs`. La clave es el searchParam (?gaming=1).
+const FEATURE_PILLS = [
+  { key: 'gaming', label: 'Gaming' },
+  { key: 'ai', label: 'Optimizado para IA' },
+  { key: 'oled', label: 'OLED' },
+] as const;
+
 export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -68,6 +75,10 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
     pushParam('ram_min', value ? String(value) : null);
   }
 
+  function toggleFlag(key: string) {
+    pushParam(key, searchParams.get(key) === '1' ? null : '1');
+  }
+
   function clearAll() {
     setQ('');
     setPriceMax('');
@@ -79,8 +90,13 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
   // Valores derivados de la URL (recalculados en cada render; el compiler memoiza).
   const selectedBrands = new Set((searchParams.get('brand') ?? '').split(',').filter(Boolean));
   const currentRamMin = Number(searchParams.get('ram_min') ?? '') || 0;
+  const anyFeature = FEATURE_PILLS.some((f) => searchParams.get(f.key) === '1');
   const anyActive =
-    q !== '' || selectedBrands.size > 0 || currentRamMin > 0 || priceMax !== '';
+    q !== '' ||
+    selectedBrands.size > 0 ||
+    currentRamMin > 0 ||
+    priceMax !== '' ||
+    anyFeature;
 
   return (
     <section
@@ -189,6 +205,32 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
                 }
               >
                 {v} GB+
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Características (filtran columnas de specs vía inner join en la home) */}
+      <div>
+        <p className="mb-1.5 text-xs font-medium text-zinc-500">Características</p>
+        <div className="flex flex-wrap gap-1.5">
+          {FEATURE_PILLS.map(({ key, label }) => {
+            const active = searchParams.get(key) === '1';
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => toggleFlag(key)}
+                aria-pressed={active}
+                className={
+                  'rounded-full border px-3 py-1 text-xs transition-colors ' +
+                  (active
+                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
+                }
+              >
+                {label}
               </button>
             );
           })}

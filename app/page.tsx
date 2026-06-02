@@ -18,6 +18,9 @@ type SearchParams = {
   brand?: string;
   ram_min?: string;
   price_max?: string;
+  gaming?: string;
+  ai?: string;
+  oled?: string;
   page?: string;
   message?: string;
 };
@@ -34,6 +37,10 @@ export default async function Home({
   const brandsFilter = (params.brand ?? '').split(',').map((s) => s.trim()).filter(Boolean);
   const ramMin = Number(params.ram_min) || 0;
   const priceMax = Number(params.price_max) || Number.POSITIVE_INFINITY;
+  // Pills de características (filtran columnas de `specs` vía inner join).
+  const gaming = params.gaming === '1';
+  const ai = params.ai === '1';
+  const oled = params.oled === '1';
   const message = params.message;
   const page = Math.max(1, Number(params.page) || 1);
 
@@ -55,28 +62,25 @@ export default async function Home({
 
   const allBrands = Array.from(new Set((allBrandsRows ?? []).map((r) => r.brand))).sort();
 
-  // 2) Si hay filtro de RAM, pre-filtra ids vía specs.
-  let allowedIds: string[] | null = null;
-  if (ramMin > 0) {
-    const { data: specIds } = await supabase
-      .from('specs')
-      .select('laptop_id')
-      .gte('ram_gb', ramMin)
-      .returns<{ laptop_id: string }[]>();
-    allowedIds = (specIds ?? []).map((s) => s.laptop_id);
-    if (allowedIds.length === 0) {
-      return renderPage([], new Map(), new Map(), allBrands, 0, page, 1, params);
-    }
-  }
-
-  // 3) Query principal de laptops con filtros de texto/marca + paginación
+  // 2) Query principal de laptops con filtros de texto/marca/specs + paginación
   //    server-side via range(). `count: 'exact'` devuelve el total filtrado
   //    para poder calcular total de páginas.
+  //
+  //    Los filtros sobre columnas de `specs` (RAM, gaming, IA, OLED) se aplican
+  //    con un inner join (`specs!inner`) en lugar de pre-filtrar ids y pasarlos
+  //    a `.in('id', ...)`: así el `count` sale exacto y evitamos que cientos de
+  //    UUIDs en el query string superen el límite de ~8KB de PostgREST. La
+  //    relación specs↔laptops es 1:1, así que el join no duplica filas.
+  const hasSpecFilter = ramMin > 0 || gaming || ai || oled;
+  const selectCols = hasSpecFilter
+    ? 'id, slug, brand, model, year, image_url, specs!inner(laptop_id)'
+    : 'id, slug, brand, model, year, image_url';
+
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
   let query = supabase
     .from('laptops')
-    .select('id, slug, brand, model, year, image_url', { count: 'exact' })
+    .select(selectCols, { count: 'exact' })
     .order('brand', { ascending: true })
     .order('id', { ascending: true }) // tiebreaker estable para que la paginación no baile
     .range(from, to);
@@ -89,8 +93,17 @@ export default async function Home({
   if (brandsFilter.length > 0) {
     query = query.in('brand', brandsFilter);
   }
-  if (allowedIds) {
-    query = query.in('id', allowedIds);
+  if (ramMin > 0) {
+    query = query.gte('specs.ram_gb', ramMin);
+  }
+  if (gaming) {
+    query = query.eq('specs.usage_type', 'Gaming');
+  }
+  if (ai) {
+    query = query.eq('specs.ai_optimized', true);
+  }
+  if (oled) {
+    query = query.in('specs.screen_panel_type', ['OLED', 'AMOLED']);
   }
 
   const { data: laptops, error: laptopsErr, count: totalCount } =
@@ -137,7 +150,7 @@ export default async function Home({
     }
   }
 
-  // 4) Filtro de precio máximo: client-side sobre la página actual. Aún no
+  // 3) Filtro de precio máximo: client-side sobre la página actual. Aún no
   //    tenemos un agregado server-side de min(price); cuando hagamos la RPC
   //    `min_price_by_laptop` lo movemos al WHERE y el conteo total será exacto.
   //    Limitación actual: con filtro de precio activo, una página puede
