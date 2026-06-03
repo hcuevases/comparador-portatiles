@@ -26,6 +26,11 @@
  * Variables de entorno requeridas (de .env.local):
  *   NEXT_PUBLIC_SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
+ *
+ * Opcionales (solo para --check-alerts; sin ellas, modo dry sin enviar):
+ *   GMAIL_USER           dirección de Gmail desde la que se envía
+ *   GMAIL_APP_PASSWORD   App Password de Google (requiere 2FA en la cuenta)
+ *   SITE_URL             URL pública del sitio (para los enlaces del email)
  */
 
 import { parseArgs } from 'node:util';
@@ -33,6 +38,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 import { createClient } from '@supabase/supabase-js';
 import { config as loadEnv } from 'dotenv';
+import nodemailer from 'nodemailer';
 
 import type { Database, Tables, TablesInsert } from '@/lib/supabase/database.types';
 
@@ -689,14 +695,20 @@ function formatEuro(value: number): string {
 async function checkAlerts(): Promise<void> {
   console.log('🔔 Comprobando alertas de bajada de precio…');
 
-  const resendKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM ?? 'Comparador de portátiles <onboarding@resend.dev>';
+  // Envío vía SMTP de Gmail (App Password). Sin credenciales → modo dry.
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPass = process.env.GMAIL_APP_PASSWORD;
   const siteUrl = (process.env.SITE_URL ?? 'https://comparador-portatiles.vercel.app').replace(
     /\/+$/,
     '',
   );
-  if (!resendKey) {
-    console.log('   (sin RESEND_API_KEY → modo dry: se loguea en vez de enviar)');
+  const transporter =
+    gmailUser && gmailPass
+      ? nodemailer.createTransport({ service: 'gmail', auth: { user: gmailUser, pass: gmailPass } })
+      : null;
+  const from = `Comparador de portátiles <${gmailUser ?? 'noreply@example.com'}>`;
+  if (!transporter) {
+    console.log('   (sin GMAIL_USER/GMAIL_APP_PASSWORD → modo dry: se loguea en vez de enviar)');
   }
 
   // Todas las alertas (service role omite RLS).
@@ -763,20 +775,17 @@ async function checkAlerts(): Promise<void> {
           Puedes quitarla en <a href="${alertasUrl}">Mis alertas</a>.</p>
       </div>`;
 
-    if (!resendKey) {
+    if (!transporter) {
       console.log(
         `  [dry] enviaría a ${email}: ${laptop.model} ${formatEuro(baseline)}→${formatEuro(current)}`,
       );
-      continue; // No marcamos last_notified: se enviará cuando se active Resend.
+      continue; // No marcamos last_notified: se enviará cuando haya credenciales.
     }
 
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: email, subject, html }),
-    });
-    if (!res.ok) {
-      console.error(`  ✗ Resend ${res.status} (${email}): ${(await res.text()).slice(0, 200)}`);
+    try {
+      await transporter.sendMail({ from, to: email, subject, html });
+    } catch (err) {
+      console.error(`  ✗ Email a ${email} falló: ${(err as Error).message}`);
       continue; // no marcamos last_notified si falló el envío
     }
     await supabase
@@ -788,7 +797,7 @@ async function checkAlerts(): Promise<void> {
   }
 
   console.log(
-    `🔔 Alertas: ${triggered} disparadas${resendKey ? `, ${sent} emails enviados` : ' (dry, 0 enviados)'}.`,
+    `🔔 Alertas: ${triggered} disparadas${transporter ? `, ${sent} emails enviados` : ' (dry, 0 enviados)'}.`,
   );
 }
 
