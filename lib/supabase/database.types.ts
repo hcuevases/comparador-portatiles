@@ -285,7 +285,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_laptops: {
+        Args: {
+          p_ai?: boolean
+          p_brands?: string[]
+          p_gaming?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_oled?: boolean
+          p_price_max?: number
+          p_q?: string
+          p_ram_min?: number
+        }
+        Returns: {
+          brand: string
+          id: string
+          image_url: string
+          min_price: number
+          model: string
+          slug: string
+          total_count: number
+          year: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

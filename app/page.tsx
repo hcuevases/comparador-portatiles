@@ -6,12 +6,23 @@ import { createClient } from '@/lib/supabase/server';
 
 // Derivados del esquema generado por `supabase gen types`. Si una columna
 // cambia, TS revienta aquí — no hay que sincronizar tipos a mano.
-type LaptopRow = Pick<Tables<'laptops'>, 'id' | 'slug' | 'brand' | 'model' | 'year' | 'image_url'>;
 type SpecRow = Pick<
   Tables<'specs'>,
   'laptop_id' | 'cpu' | 'ram_gb' | 'storage_gb' | 'screen_inches' | 'weight_kg'
 >;
-type PriceRow = Pick<Tables<'prices_history'>, 'laptop_id' | 'price_eur'>;
+
+// Filas que devuelve la RPC `search_laptops`: catálogo + min de precio agregado
+// en SQL + total filtrado (count window). Ver db/migrations/0008_search_laptops_rpc.sql.
+type SearchRow = {
+  id: string;
+  slug: string;
+  brand: string;
+  model: string;
+  year: number | null;
+  image_url: string | null;
+  min_price: number | null;
+  total_count: number;
+};
 
 type SearchParams = {
   q?: string;
@@ -66,115 +77,57 @@ export default async function Home({
 
   const allBrands = Array.from(new Set((allBrandsRows ?? []).map((r) => r.brand))).sort();
 
-  // 2) Query principal de laptops con filtros de texto/marca/specs + paginación
-  //    server-side via range(). `count: 'exact'` devuelve el total filtrado
-  //    para poder calcular total de páginas.
-  //
-  //    Los filtros sobre columnas de `specs` (RAM, gaming, IA, OLED) se aplican
-  //    con un inner join (`specs!inner`) en lugar de pre-filtrar ids y pasarlos
-  //    a `.in('id', ...)`: así el `count` sale exacto y evitamos que cientos de
-  //    UUIDs en el query string superen el límite de ~8KB de PostgREST. La
-  //    relación specs↔laptops es 1:1, así que el join no duplica filas.
-  const hasSpecFilter = ramMin > 0 || gaming || ai || oled;
-  const selectCols = hasSpecFilter
-    ? 'id, slug, brand, model, year, image_url, specs!inner(laptop_id)'
-    : 'id, slug, brand, model, year, image_url';
+  // 2) Búsqueda + filtros (texto/marca/specs/precio) + paginación + count en una
+  //    sola RPC server-side. El filtro de precio máximo va en el WHERE de la
+  //    función, así que el total es EXACTO (antes era client-side y el count
+  //    sobreestimaba). El min de precio se agrega en SQL — no traemos todo
+  //    `prices_history`. Ver db/migrations/0008_search_laptops_rpc.sql.
+  const offset = (page - 1) * PAGE_SIZE;
+  const { data: rows, error: searchErr } = await supabase
+    .rpc('search_laptops', {
+      p_q: q ? escapeIlike(q) : undefined,
+      p_brands: brandsFilter.length > 0 ? brandsFilter : undefined,
+      p_ram_min: ramMin,
+      p_price_max: priceMax === Number.POSITIVE_INFINITY ? undefined : priceMax,
+      p_gaming: gaming,
+      p_ai: ai,
+      p_oled: oled,
+      p_limit: PAGE_SIZE,
+      p_offset: offset,
+    })
+    .returns<SearchRow[]>();
 
-  const from = (page - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
-  let query = supabase
-    .from('laptops')
-    .select(selectCols, { count: 'exact' })
-    .order('brand', { ascending: true })
-    .order('id', { ascending: true }) // tiebreaker estable para que la paginación no baile
-    .range(from, to);
-
-  if (q) {
-    // ilike es case-insensitive; .or compone "brand ILIKE ... OR model ILIKE ..."
-    const pattern = `%${escapeIlike(q)}%`;
-    query = query.or(`brand.ilike.${pattern},model.ilike.${pattern}`);
-  }
-  if (brandsFilter.length > 0) {
-    query = query.in('brand', brandsFilter);
-  }
-  if (ramMin > 0) {
-    query = query.gte('specs.ram_gb', ramMin);
-  }
-  if (gaming) {
-    query = query.eq('specs.usage_type', 'Gaming');
-  }
-  if (ai) {
-    query = query.eq('specs.ai_optimized', true);
-  }
-  if (oled) {
-    query = query.in('specs.screen_panel_type', ['OLED', 'AMOLED']);
-  }
-
-  const { data: laptops, error: laptopsErr, count: totalCount } =
-    await query.returns<LaptopRow[]>();
-
-  if (laptopsErr) {
+  if (searchErr) {
     return (
       <main className="mx-auto max-w-5xl p-8">
-        <ErrorBox title="Error consultando Supabase" message={laptopsErr.message} />
+        <ErrorBox title="Error consultando Supabase" message={searchErr.message} />
       </main>
     );
   }
 
-  const ids = (laptops ?? []).map((l) => l.id);
+  const laptops = rows ?? [];
+  const ids = laptops.map((l) => l.id);
 
-  const [{ data: specsData }, { data: pricesData }] = await Promise.all([
-    supabase
-      .from('specs')
-      .select('laptop_id, cpu, ram_gb, storage_gb, screen_inches, weight_kg')
-      .in('laptop_id', ids)
-      .returns<SpecRow[]>(),
-    supabase
-      .from('prices_history')
-      .select('laptop_id, price_eur')
-      // Sin .in() — con cientos de UUIDs el query string supera los ~8KB que
-      // PostgREST acepta y algunos IDs se cortan silenciosamente, dejando
-      // laptops "sin precio" en el frontend aunque sí los tengan en BD.
-      // Traemos todo y filtramos en cliente (el Map solo consulta los ids del
-      // scope actual). TODO crítico: cuando prices_history pase de 10-20k
-      // filas, mover a RPC `min_price_by_laptop(ids uuid[])` en Supabase
-      // que devuelva ya agregado server-side.
-      .limit(50_000)
-      .returns<PriceRow[]>(),
-  ]);
+  // Specs solo de la página actual (≤ PAGE_SIZE ids) para pintar las cards.
+  const { data: specsData } = await supabase
+    .from('specs')
+    .select('laptop_id, cpu, ram_gb, storage_gb, screen_inches, weight_kg')
+    .in('laptop_id', ids)
+    .returns<SpecRow[]>();
 
   const specsByLaptop = new Map<string, SpecRow>();
   for (const s of specsData ?? []) specsByLaptop.set(s.laptop_id, s);
 
-  const minPriceByLaptop = new Map<string, number>();
-  for (const p of pricesData ?? []) {
-    const cur = minPriceByLaptop.get(p.laptop_id);
-    if (cur === undefined || p.price_eur < cur) {
-      minPriceByLaptop.set(p.laptop_id, p.price_eur);
-    }
-  }
-
-  // 3) Filtro de precio máximo: client-side sobre la página actual. Aún no
-  //    tenemos un agregado server-side de min(price); cuando hagamos la RPC
-  //    `min_price_by_laptop` lo movemos al WHERE y el conteo total será exacto.
-  //    Limitación actual: con filtro de precio activo, una página puede
-  //    mostrar < PAGE_SIZE items y el total estará sobreestimado.
-  let filteredLaptops = laptops ?? [];
-  if (priceMax !== Number.POSITIVE_INFINITY) {
-    filteredLaptops = filteredLaptops.filter((l) => {
-      const price = minPriceByLaptop.get(l.id);
-      return price !== undefined && price <= priceMax;
-    });
-  }
-
-  const totalPages = Math.max(1, Math.ceil((totalCount ?? 0) / PAGE_SIZE));
+  // El total filtrado viaja en cada fila (count(*) over()); en una página válida
+  // siempre hay ≥ 1 fila. Solo es 0 cuando no hay resultados.
+  const totalCount = laptops.length > 0 ? laptops[0].total_count : 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return renderPage(
-    filteredLaptops,
+    laptops,
     specsByLaptop,
-    minPriceByLaptop,
     allBrands,
-    totalCount ?? 0,
+    totalCount,
     page,
     totalPages,
     params,
@@ -184,9 +137,8 @@ export default async function Home({
 }
 
 function renderPage(
-  filteredLaptops: LaptopRow[],
+  laptops: SearchRow[],
   specsByLaptop: Map<string, SpecRow>,
-  minPriceByLaptop: Map<string, number>,
   allBrands: string[],
   totalCount: number,
   currentPage: number,
@@ -195,7 +147,7 @@ function renderPage(
   catalogQuery: string,
   message?: string,
 ) {
-  const cards: LaptopCard[] = filteredLaptops.map((l) => ({
+  const cards: LaptopCard[] = laptops.map((l) => ({
     id: l.id,
     slug: l.slug,
     brand: l.brand,
@@ -203,7 +155,7 @@ function renderPage(
     year: l.year,
     image_url: l.image_url,
     specs: specsByLaptop.get(l.id) ?? null,
-    minPriceEur: minPriceByLaptop.get(l.id) ?? null,
+    minPriceEur: l.min_price,
   }));
 
   return (
