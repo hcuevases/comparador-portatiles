@@ -15,6 +15,12 @@
  *   npm run scrape:catalog -- --limit 5
  *   npm run scrape:catalog -- --limit 100
  *   npm run scrape:catalog -- --limit 5 --dry-run
+ *   npm run scrape:catalog -- --by-brand --limit 10000        (catálogo completo)
+ *   npm run scrape:catalog -- --prices-only --by-brand --limit 10000
+ *
+ * Algolia limita la paginación a 1000 resultados por query. La categoría tiene
+ * ~3700 portátiles, así que para cogerlos todos hay que particionar por marca
+ * (--by-brand): cada marca tiene <1000 y se pagina entera.
  *
  * Variables de entorno requeridas (de .env.local):
  *   NEXT_PUBLIC_SUPABASE_URL
@@ -47,6 +53,10 @@ const { values: args } = parseArgs({
     // no añade catálogo nuevo (eso se hace con el modo completo, p. ej.
     // desde el cron semanal).
     'prices-only': { type: 'boolean', default: false },
+    // Particiona la búsqueda por marca para sortear el tope de paginación de
+    // Algolia (1000 resultados por query). Sin esto solo alcanzamos los primeros
+    // 1000 de los ~3700 portátiles del catálogo. Combinable con --prices-only.
+    'by-brand': { type: 'boolean', default: false },
   },
 });
 
@@ -55,6 +65,7 @@ const DRY_RUN = args['dry-run'];
 const DISCOVER_CATS = args['discover-categories'];
 const DISCOVER_ATTRS = args['discover-attrs'];
 const PRICES_ONLY = args['prices-only'];
+const BY_BRAND = args['by-brand'];
 
 if (!Number.isFinite(LIMIT) || LIMIT < 1) {
   throw new Error('--limit debe ser un número positivo');
@@ -123,14 +134,23 @@ type LaptopDetail = {
 
 // ─── Algolia request ──────────────────────────────────────────────────────
 
-async function searchAlgolia(page: number, debug = false): Promise<AlgoliaResponse> {
+async function searchAlgolia(
+  page: number,
+  opts: { debug?: boolean; brand?: string | null } = {},
+): Promise<AlgoliaResponse> {
+  const { debug = false, brand = null } = opts;
   const url = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX}/query`;
+  // brandName se entrecomilla con JSON.stringify para escapar marcas con
+  // espacios o comillas. Se combina con AND al filtro de categoría.
+  const filters = brand
+    ? `${CATEGORY_FILTER} AND brandName:${JSON.stringify(brand)}`
+    : CATEGORY_FILTER;
   const body: Record<string, unknown> = {
     query: '',
     hitsPerPage: HITS_PER_PAGE,
     page,
+    filters,
   };
-  if (CATEGORY_FILTER) body.filters = CATEGORY_FILTER;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -653,49 +673,81 @@ async function main() {
 
   const mode = PRICES_ONLY ? 'prices-only' : 'completo';
   console.log(
-    `🚀 Ingesta PcComponentes (modo=${mode}, limit=${LIMIT}, dry-run=${DRY_RUN})`,
+    `🚀 Ingesta PcComponentes (modo=${mode}, by-brand=${BY_BRAND}, limit=${LIMIT}, dry-run=${DRY_RUN})`,
   );
 
   const retailerId = DRY_RUN ? 'dry-run' : await getOrCreateRetailerId();
   if (!DRY_RUN) console.log(`   retailer_id: ${retailerId}`);
 
-  let page = 0;
-  let processed = 0;
-  let ok = 0;
-  let skipped = 0;
-  let fail = 0;
-  let firstCall = true;
+  const state: IngestState = { processed: 0, ok: 0, skipped: 0, fail: 0, firstCall: true };
 
-  while (processed < LIMIT) {
-    const res = await searchAlgolia(page, firstCall);
-    firstCall = false;
-    console.log(`📄 Página ${page + 1}/${res.nbPages} — ${res.hits.length} hits (total catálogo: ${res.nbHits})`);
-
-    if (res.hits.length === 0) {
-      console.log('   (sin más hits)');
-      break;
+  if (BY_BRAND) {
+    // Partición por marca para sortear el tope de 1000 de Algolia. Cada marca
+    // tiene <1000 productos, así que su query es paginable entera.
+    const brands = await fetchBrandNames();
+    console.log(`   ${brands.length} marcas a recorrer (partición anti-tope de Algolia)`);
+    for (const brand of brands) {
+      if (state.processed >= LIMIT) break;
+      await ingestQuery(brand, state, retailerId);
     }
+  } else {
+    // Una sola query sobre toda la categoría: tope efectivo de 1000 resultados.
+    await ingestQuery(null, state, retailerId);
+  }
+
+  const skippedSuffix = PRICES_ONLY ? `, ${state.skipped} saltados (no en BD)` : '';
+  console.log(
+    `\n✅ Hecho: ${state.ok} ok, ${state.fail} fallidos${skippedSuffix} (${state.processed} procesados)`,
+  );
+}
+
+type IngestState = {
+  processed: number;
+  ok: number;
+  skipped: number;
+  fail: number;
+  firstCall: boolean;
+};
+
+// Pagina UNA query (toda la categoría si brand=null, o una marca concreta) y
+// procesa sus hits, respetando el tope global LIMIT vía `state` compartido.
+async function ingestQuery(
+  brand: string | null,
+  state: IngestState,
+  retailerId: string,
+): Promise<void> {
+  let page = 0;
+  const label = brand ? `[${brand}] ` : '';
+
+  while (state.processed < LIMIT) {
+    const res = await searchAlgolia(page, { debug: state.firstCall, brand });
+    state.firstCall = false;
+    console.log(
+      `📄 ${label}Página ${page + 1}/${res.nbPages} — ${res.hits.length} hits (total: ${res.nbHits})`,
+    );
+
+    if (res.hits.length === 0) break;
 
     for (const hit of res.hits) {
-      if (processed >= LIMIT) break;
-      processed += 1;
+      if (state.processed >= LIMIT) break;
+      state.processed += 1;
       const detail = mapHit(hit);
       if (!detail) {
-        fail += 1;
+        state.fail += 1;
         continue;
       }
       try {
         if (PRICES_ONLY) {
           const inserted = await refreshPriceOnly(detail, retailerId);
-          if (inserted) ok += 1;
-          else skipped += 1;
+          if (inserted) state.ok += 1;
+          else state.skipped += 1;
         } else {
           await upsertLaptop(detail, retailerId);
-          ok += 1;
+          state.ok += 1;
         }
       } catch (err) {
         console.error(`  ✗ Excepción: ${(err as Error).message}`);
-        fail += 1;
+        state.fail += 1;
       }
     }
 
@@ -704,9 +756,41 @@ async function main() {
     // Cortesía con Algolia — su rate limit es generoso pero no abusemos.
     await sleep(300);
   }
+}
 
-  const skippedSuffix = PRICES_ONLY ? `, ${skipped} saltados (no en BD)` : '';
-  console.log(`\n✅ Hecho: ${ok} ok, ${fail} fallidos${skippedSuffix} (${processed} procesados)`);
+// Lista de marcas (facet brandName) dentro de la categoría Portátiles. Avisa si
+// alguna marca roza el tope de 1000 (necesitaría partición más fina).
+async function fetchBrandNames(): Promise<string[]> {
+  const url = `https://${ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX}/query`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Algolia-Application-Id': ALGOLIA_APP_ID,
+      'X-Algolia-API-Key': ALGOLIA_API_KEY,
+    },
+    body: JSON.stringify({
+      query: '',
+      filters: CATEGORY_FILTER,
+      hitsPerPage: 0,
+      facets: ['brandName'],
+      maxValuesPerFacet: 1000,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Algolia ${res.status}: ${(await res.text()).slice(0, 500)}`);
+  }
+  const data = (await res.json()) as { facets?: Record<string, Record<string, number>> };
+  const counts = data.facets?.brandName ?? {};
+  const big = Object.entries(counts).filter(([, n]) => n >= 1000);
+  if (big.length > 0) {
+    console.warn(
+      `   ⚠ Marcas con >=1000 productos (se truncarán al tope de Algolia; haría falta partición más fina): ${big
+        .map(([b, n]) => `${b}:${n}`)
+        .join(', ')}`,
+    );
+  }
+  return Object.keys(counts).sort();
 }
 
 main().catch((err) => {
