@@ -306,6 +306,8 @@ export type Database = {
           p_q?: string
           p_ram_min?: number
           p_refurbished?: boolean
+          p_screen_max?: number
+          p_screen_min?: number
         }
         Returns: {
           brand: string
