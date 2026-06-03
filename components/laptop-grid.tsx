@@ -38,6 +38,10 @@ export function LaptopGrid({
         {laptops.map((l) => {
           const selected = isSelected(l.id);
           const disabled = !selected && isFull;
+          // Reacondicionado: el slug acaba en `-refurbished` (lo garantiza el
+          // scraper, ver migración 0007/0009). El modelo también lo dice, pero
+          // el <h2> hace truncate y lo oculta, así que el badge sí aporta.
+          const refurbished = l.slug.endsWith('-refurbished');
           return (
             <li
               key={l.id}
@@ -80,9 +84,14 @@ export function LaptopGrid({
                     para que las cards estén alineadas independientemente del
                     aspect ratio de cada imagen. object-contain para no recortar. */}
                 <div className="relative h-40 w-full overflow-hidden rounded-t-lg bg-zinc-50 dark:bg-zinc-900">
+                  {refurbished && (
+                    <span className="absolute left-2 top-2 z-10 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                      Reacondicionado
+                    </span>
+                  )}
                   {l.image_url ? (
                     <Image
-                      src={l.image_url}
+                      src={gridThumb(l.image_url)}
                       alt={`${l.brand} ${l.model}`}
                       fill
                       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
@@ -160,4 +169,12 @@ function formatEur(value: number): string {
     currency: 'EUR',
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+// PcComponentes codifica el tamaño del thumb en la ruta (w-530-530 = "large").
+// En el grid las cards son pequeñas (h-40), así que pedimos la variante 300x300
+// ("medium") para que next/image descargue menos bytes del origen. Si la URL no
+// tiene ese patrón, se devuelve sin tocar.
+function gridThumb(url: string): string {
+  return url.replace('/w-530-530/', '/w-300-300/');
 }
