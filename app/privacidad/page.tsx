@@ -7,10 +7,16 @@ export const metadata: Metadata = {
     'Política de privacidad y de cookies: qué datos tratamos, con qué base legal, cuánto los conservamos y cómo ejercer tus derechos.',
 };
 
-// Página estática. Los datos legales concretos (responsable, contacto, dominio)
-// son PLACEHOLDERS marcados con [corchetes]: rellénalos antes de abrir el registro
-// al público.
-const RESPONSABLE = '[NOMBRE O RAZÓN SOCIAL DEL RESPONSABLE]';
+// Página estática.
+//
+// PENDIENTE ANTES DE ABRIR EL REGISTRO AL PÚBLICO (ver "últimos pasos" en el vault):
+// con ingresos por afiliación hay actividad económica → LSSI-CE + RGPD exigen
+// identificar a quién opera el sitio. Hay que sustituir `RESPONSABLE` por la
+// identidad real del operador (recomendado: autónomo con nombre comercial o SL,
+// para no exponer el nombre personal) y `CONTACTO` por un email de rol sobre el
+// dominio propio (p. ej. privacidad@tudominio). De momento, identidad de marca +
+// email placeholder (el sitio aún no está en público).
+const RESPONSABLE = 'Comparador de portátiles';
 const CONTACTO = '[email de contacto]';
 const ULTIMA_ACTUALIZACION = '3 de junio de 2026';
 
