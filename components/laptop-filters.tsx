@@ -19,6 +19,15 @@ const FEATURE_PILLS = [
   { key: 'refurbished', label: 'Reacondicionado' },
 ] as const;
 
+// Buckets de tamaño de pantalla. La `key` es la del searchParam `?screen=` y debe
+// coincidir con SCREEN_BUCKETS de app/page.tsx (que la traduce a rango min/max).
+const SCREEN_OPTIONS = [
+  { key: '13', label: '13″' },
+  { key: '14', label: '14″' },
+  { key: '15-16', label: '15-16″' },
+  { key: '17', label: '17″' },
+] as const;
+
 export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -89,6 +98,10 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
     pushParam(key, searchParams.get(key) === '1' ? null : '1');
   }
 
+  function setScreen(value: string | null) {
+    pushParam('screen', value);
+  }
+
   function clearAll() {
     setQ('');
     setPriceMax('');
@@ -100,11 +113,13 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
   // Valores derivados de la URL (recalculados en cada render; el compiler memoiza).
   const selectedBrands = new Set((searchParams.get('brand') ?? '').split(',').filter(Boolean));
   const currentRamMin = Number(searchParams.get('ram_min') ?? '') || 0;
+  const currentScreen = searchParams.get('screen') ?? '';
   const anyFeature = FEATURE_PILLS.some((f) => searchParams.get(f.key) === '1');
   const anyActive =
     q !== '' ||
     selectedBrands.size > 0 ||
     currentRamMin > 0 ||
+    currentScreen !== '' ||
     priceMax !== '' ||
     anyFeature;
 
@@ -215,6 +230,45 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
                 }
               >
                 {v} GB+
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Tamaño de pantalla */}
+      <div>
+        <p className="mb-1.5 text-xs font-medium text-zinc-500">Tamaño de pantalla</p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setScreen(null)}
+            aria-pressed={currentScreen === ''}
+            className={
+              'rounded-full border px-3 py-1 text-xs transition-colors ' +
+              (currentScreen === ''
+                ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
+            }
+          >
+            Cualquiera
+          </button>
+          {SCREEN_OPTIONS.map(({ key, label }) => {
+            const active = currentScreen === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setScreen(key)}
+                aria-pressed={active}
+                className={
+                  'rounded-full border px-3 py-1 text-xs transition-colors ' +
+                  (active
+                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
+                }
+              >
+                {label}
               </button>
             );
           })}

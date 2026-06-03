@@ -33,11 +33,23 @@ type SearchParams = {
   ai?: string;
   oled?: string;
   refurbished?: string;
+  screen?: string;
   page?: string;
   message?: string;
 };
 
 const PAGE_SIZE = 24;
+
+// Buckets de tamaño de pantalla. `screen_inches` es discreto/aproximado (13, 14,
+// 16, 17; el 16 agrupa el rango 15-16 de Algolia), así que filtramos por rango.
+// Las claves son las del searchParam `?screen=`. Debe coincidir con SCREEN_OPTIONS
+// de components/laptop-filters.tsx.
+const SCREEN_BUCKETS: Record<string, { min: number; max: number | null }> = {
+  '13': { min: 12, max: 13.9 },
+  '14': { min: 14, max: 14.9 },
+  '15-16': { min: 15, max: 16.9 },
+  '17': { min: 17, max: null },
+};
 
 export default async function Home({
   searchParams,
@@ -54,6 +66,7 @@ export default async function Home({
   const ai = params.ai === '1';
   const oled = params.oled === '1';
   const refurbished = params.refurbished === '1';
+  const screenBucket = SCREEN_BUCKETS[params.screen ?? ''];
   const message = params.message;
   const page = Math.max(1, Number(params.page) || 1);
 
@@ -96,6 +109,8 @@ export default async function Home({
       p_ai: ai,
       p_oled: oled,
       p_refurbished: refurbished,
+      p_screen_min: screenBucket?.min,
+      p_screen_max: screenBucket?.max ?? undefined,
       p_limit: PAGE_SIZE,
       p_offset: offset,
     })
