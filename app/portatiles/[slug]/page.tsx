@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 
 import { AddToCompareButton } from '@/components/add-to-compare-button';
 import { BackToCatalog, BackToCatalogFallback } from '@/components/back-to-catalog';
+import { PriceAlertButton } from '@/components/price-alert-button';
 import {
   PriceHistoryChart,
   type ChartDatum,
@@ -253,6 +254,7 @@ export default async function LaptopDetailPage({
             <p className="mt-4 text-lg font-medium">Desde {formatEur(minPrice)}</p>
           )}
           <AddToCompareButton laptopId={laptop.id} />
+          <PriceAlertButton laptopId={laptop.id} />
         </div>
       </header>
 

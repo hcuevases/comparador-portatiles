@@ -128,6 +128,41 @@ export type Database = {
         }
         Relationships: []
       }
+      price_alerts: {
+        Row: {
+          baseline_price_eur: number
+          created_at: string
+          id: string
+          laptop_id: string
+          last_notified_price_eur: number | null
+          user_id: string
+        }
+        Insert: {
+          baseline_price_eur: number
+          created_at?: string
+          id?: string
+          laptop_id: string
+          last_notified_price_eur?: number | null
+          user_id: string
+        }
+        Update: {
+          baseline_price_eur?: number
+          created_at?: string
+          id?: string
+          laptop_id?: string
+          last_notified_price_eur?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_alerts_laptop_id_fkey"
+            columns: ["laptop_id"]
+            isOneToOne: false
+            referencedRelation: "laptops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prices_history: {
         Row: {
           currency: string
@@ -288,6 +323,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_min_prices: {
+        Args: { p_ids: string[] }
+        Returns: {
+          laptop_id: string
+          min_price: number
+        }[]
+      }
       distinct_brands: {
         Args: never
         Returns: {

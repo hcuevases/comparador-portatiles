@@ -60,6 +60,13 @@ export default function PrivacidadPage() {
               puedas recuperarla.
             </li>
             <li>
+              <strong>Alertas de precio.</strong> Si creas una alerta de bajada de precio,
+              almacenamos el modelo y el precio de referencia asociados a tu cuenta, y usamos tu{' '}
+              <strong>correo electrónico</strong> para avisarte cuando baje. Es un servicio que tú
+              solicitas; puedes darte de baja de cada alerta cuando quieras desde{' '}
+              <em>Mis alertas</em> o el enlace del propio email.
+            </li>
+            <li>
               <strong>No tratamos datos de pago.</strong> No vendemos directamente: la compra se
               realiza en la web del comercio (retailer) de destino, que aplica su propia política.
             </li>
