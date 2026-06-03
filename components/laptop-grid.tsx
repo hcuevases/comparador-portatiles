@@ -21,7 +21,15 @@ export type LaptopCard = Pick<
   minPriceEur: number | null;
 };
 
-export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
+export function LaptopGrid({
+  laptops,
+  backQuery,
+}: {
+  laptops: LaptopCard[];
+  // Query string de la home (página + filtros) que se propaga a la ficha como
+  // `?from=` para que su enlace "Volver al catálogo" recuerde el origen.
+  backQuery?: string;
+}) {
   const { toggle, isSelected, isFull } = useCompareSelection();
 
   return (
@@ -61,7 +69,11 @@ export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
               </label>
 
               <Link
-                href={`/portatiles/${l.slug}`}
+                href={
+                  backQuery
+                    ? `/portatiles/${l.slug}?from=${encodeURIComponent(backQuery)}`
+                    : `/portatiles/${l.slug}`
+                }
                 className="block hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40"
               >
                 {/* Imagen del producto (con fallback si no hay). Altura fija

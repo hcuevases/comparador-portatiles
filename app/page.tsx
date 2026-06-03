@@ -44,6 +44,10 @@ export default async function Home({
   const message = params.message;
   const page = Math.max(1, Number(params.page) || 1);
 
+  // Query string actual (página + filtros) para que las fichas sepan a dónde
+  // volver. Excluimos `message` (feedback transitorio que no debe persistir).
+  const catalogQuery = buildCatalogQuery(params);
+
   const supabase = await createClient();
 
   // 1) Marcas del catálogo completo, para los pills del filtro.
@@ -174,6 +178,7 @@ export default async function Home({
     page,
     totalPages,
     params,
+    catalogQuery,
     message,
   );
 }
@@ -187,6 +192,7 @@ function renderPage(
   currentPage: number,
   totalPages: number,
   searchParams: SearchParams,
+  catalogQuery: string,
   message?: string,
 ) {
   const cards: LaptopCard[] = filteredLaptops.map((l) => ({
@@ -223,7 +229,11 @@ function renderPage(
           : `${totalCount} ${totalCount === 1 ? 'portátil' : 'portátiles'} en total · página ${currentPage} de ${totalPages}`}
       </p>
 
-      {cards.length === 0 ? <EmptyState /> : <LaptopGrid laptops={cards} />}
+      {cards.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <LaptopGrid laptops={cards} backQuery={catalogQuery} />
+      )}
 
       <Pagination
         currentPage={currentPage}
@@ -261,4 +271,19 @@ function ErrorBox({ title, message }: { title: string; message: string }) {
  */
 function escapeIlike(input: string): string {
   return input.replace(/[%_\\]/g, (m) => `\\${m}`);
+}
+
+/**
+ * Serializa los searchParams actuales (página + filtros) a un query string,
+ * omitiendo `message` (banner transitorio). Lo usan las fichas vía `?from=`
+ * para reconstruir el enlace "Volver al catálogo" con la página y filtros de
+ * origen.
+ */
+function buildCatalogQuery(params: SearchParams): string {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (k === 'message') continue;
+    if (v) sp.set(k, v);
+  }
+  return sp.toString();
 }
