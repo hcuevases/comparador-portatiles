@@ -288,6 +288,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      distinct_brands: {
+        Args: never
+        Returns: {
+          brand: string
+        }[]
+      }
       search_laptops: {
         Args: {
           p_ai?: boolean
