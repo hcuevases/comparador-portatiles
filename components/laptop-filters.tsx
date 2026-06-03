@@ -16,6 +16,7 @@ const FEATURE_PILLS = [
   { key: 'gaming', label: 'Gaming' },
   { key: 'ai', label: 'Optimizado para IA' },
   { key: 'oled', label: 'OLED' },
+  { key: 'refurbished', label: 'Reacondicionado' },
 ] as const;
 
 export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Props) {
