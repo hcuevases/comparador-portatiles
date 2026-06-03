@@ -36,6 +36,7 @@ export function PriceHistoryChart({ data, series }: Props) {
             tick={{ fontSize: 11 }}
             tickMargin={6}
             minTickGap={28}
+            interval="preserveStartEnd"
             stroke="currentColor"
             opacity={0.6}
           />
@@ -43,7 +44,7 @@ export function PriceHistoryChart({ data, series }: Props) {
             tick={{ fontSize: 11 }}
             tickFormatter={(v: number) => `${v}€`}
             domain={['auto', 'auto']}
-            width={56}
+            width={48}
             stroke="currentColor"
             opacity={0.6}
           />

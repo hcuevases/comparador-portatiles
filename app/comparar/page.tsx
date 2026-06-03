@@ -1,13 +1,15 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { SubmitButton } from '@/components/submit-button';
+import { pccThumb } from '@/lib/images';
 import type { Tables } from '@/lib/supabase/database.types';
 import { createClient } from '@/lib/supabase/server';
 
 import { saveComparison } from './actions';
 
 // Derivados del esquema generado. Cambia una columna en Supabase y aquí salta TS.
-type LaptopRow = Pick<Tables<'laptops'>, 'id' | 'slug' | 'brand' | 'model' | 'year'>;
+type LaptopRow = Pick<Tables<'laptops'>, 'id' | 'slug' | 'brand' | 'model' | 'year' | 'image_url'>;
 type SpecRow = Pick<
   Tables<'specs'>,
   | 'laptop_id'
@@ -73,7 +75,11 @@ export default async function CompararPage({
     { data: pricesData },
   ] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from('laptops').select('id, slug, brand, model, year').in('id', ids).returns<LaptopRow[]>(),
+    supabase
+      .from('laptops')
+      .select('id, slug, brand, model, year, image_url')
+      .in('id', ids)
+      .returns<LaptopRow[]>(),
     supabase
       .from('specs')
       .select(
@@ -168,14 +174,30 @@ export default async function CompararPage({
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-zinc-200 dark:border-zinc-800">
-              <th className="w-40 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">
+              <th className="sticky left-0 z-10 w-40 border-r border-zinc-200 bg-white py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
                 Atributo
               </th>
               {ordered.map((l) => (
-                <th key={l.id} className="px-3 py-3 text-left">
-                  <p className="text-xs text-zinc-500">{l.brand}</p>
-                  <p className="font-medium leading-tight">{l.model}</p>
-                  {l.year && <p className="text-xs text-zinc-500">{l.year}</p>}
+                <th key={l.id} className="min-w-36 px-3 py-3 text-left align-bottom">
+                  <Link
+                    href={`/portatiles/${l.slug}`}
+                    className="block hover:opacity-80"
+                  >
+                    {l.image_url && (
+                      <div className="relative mb-2 h-16 w-16 overflow-hidden rounded bg-zinc-50 dark:bg-zinc-900">
+                        <Image
+                          src={pccThumb(l.image_url, 300)}
+                          alt={`${l.brand} ${l.model}`}
+                          fill
+                          sizes="64px"
+                          className="object-contain p-1"
+                        />
+                      </div>
+                    )}
+                    <p className="text-xs text-zinc-500">{l.brand}</p>
+                    <p className="font-medium leading-tight">{l.model}</p>
+                    {l.year && <p className="text-xs text-zinc-500">{l.year}</p>}
+                  </Link>
                 </th>
               ))}
             </tr>
@@ -188,7 +210,7 @@ export default async function CompararPage({
                   key={row.label}
                   className="border-b border-zinc-100 last:border-0 dark:border-zinc-900"
                 >
-                  <th className="py-2 pr-3 text-left text-xs font-medium text-zinc-500">
+                  <th className="sticky left-0 z-10 border-r border-zinc-200 bg-white py-2 pr-3 text-left text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
                     {row.label}
                   </th>
                   {row.values.map((value, i) => (

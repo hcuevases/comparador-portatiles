@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
+import { pccThumb } from '@/lib/images';
 import type { Tables } from '@/lib/supabase/database.types';
 import { useCompareSelection } from '@/lib/use-compare-selection';
 
@@ -91,7 +92,7 @@ export function LaptopGrid({
                   )}
                   {l.image_url ? (
                     <Image
-                      src={gridThumb(l.image_url)}
+                      src={pccThumb(l.image_url, 300)}
                       alt={`${l.brand} ${l.model}`}
                       fill
                       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
@@ -169,12 +170,4 @@ function formatEur(value: number): string {
     currency: 'EUR',
     maximumFractionDigits: 0,
   }).format(value);
-}
-
-// PcComponentes codifica el tamaño del thumb en la ruta (w-530-530 = "large").
-// En el grid las cards son pequeñas (h-40), así que pedimos la variante 300x300
-// ("medium") para que next/image descargue menos bytes del origen. Si la URL no
-// tiene ese patrón, se devuelve sin tocar.
-function gridThumb(url: string): string {
-  return url.replace('/w-530-530/', '/w-300-300/');
 }
