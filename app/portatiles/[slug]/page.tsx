@@ -239,6 +239,11 @@ export default async function LaptopDetailPage({
           {laptop.year && (
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{laptop.year}</p>
           )}
+          {laptop.slug.endsWith('-refurbished') && (
+            <span className="mt-2 inline-block rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+              Reacondicionado
+            </span>
+          )}
           {laptop.description && (
             <p className="mt-4 max-w-2xl text-zinc-700 dark:text-zinc-300">
               {laptop.description}
