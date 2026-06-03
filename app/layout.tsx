@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 
 import { CompareBar } from '@/components/compare-bar';
+import { CookieBanner } from '@/components/cookie-banner';
 import { NavBar } from '@/components/nav-bar';
+import { SiteFooter } from '@/components/site-footer';
 
 import './globals.css';
 
@@ -34,7 +36,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <NavBar />
         {children}
+        <SiteFooter />
         <CompareBar />
+        <CookieBanner />
       </body>
     </html>
   );
