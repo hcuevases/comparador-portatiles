@@ -1,8 +1,9 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 
 import { AddToCompareButton } from '@/components/add-to-compare-button';
+import { BackToCatalog, BackToCatalogFallback } from '@/components/back-to-catalog';
 import {
   PriceHistoryChart,
   type ChartDatum,
@@ -214,12 +215,9 @@ export default async function LaptopDetailPage({
   return (
     <main className="mx-auto max-w-5xl p-8">
       <nav className="mb-6 text-sm">
-        <Link
-          href="/"
-          className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          ← Volver al catálogo
-        </Link>
+        <Suspense fallback={<BackToCatalogFallback />}>
+          <BackToCatalog />
+        </Suspense>
       </nav>
 
       <header className="mb-8 grid gap-6 sm:grid-cols-[auto_1fr] sm:items-start">
