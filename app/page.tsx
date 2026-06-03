@@ -32,6 +32,7 @@ type SearchParams = {
   gaming?: string;
   ai?: string;
   oled?: string;
+  refurbished?: string;
   page?: string;
   message?: string;
 };
@@ -52,6 +53,7 @@ export default async function Home({
   const gaming = params.gaming === '1';
   const ai = params.ai === '1';
   const oled = params.oled === '1';
+  const refurbished = params.refurbished === '1';
   const message = params.message;
   const page = Math.max(1, Number(params.page) || 1);
 
@@ -92,6 +94,7 @@ export default async function Home({
       p_gaming: gaming,
       p_ai: ai,
       p_oled: oled,
+      p_refurbished: refurbished,
       p_limit: PAGE_SIZE,
       p_offset: offset,
     })

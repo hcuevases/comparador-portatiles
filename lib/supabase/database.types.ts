@@ -97,6 +97,7 @@ export type Database = {
           id: string
           image_url: string | null
           model: string
+          refurbished: boolean
           slug: string
           updated_at: string
           year: number | null
@@ -108,6 +109,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           model: string
+          refurbished?: boolean
           slug: string
           updated_at?: string
           year?: number | null
@@ -119,6 +121,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           model?: string
+          refurbished?: boolean
           slug?: string
           updated_at?: string
           year?: number | null
@@ -296,6 +299,7 @@ export type Database = {
           p_price_max?: number
           p_q?: string
           p_ram_min?: number
+          p_refurbished?: boolean
         }
         Returns: {
           brand: string

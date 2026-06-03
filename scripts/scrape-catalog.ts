@@ -115,6 +115,7 @@ type LaptopDetail = {
   year: number | null;
   description: string | null;
   imageUrl: string | null;
+  refurbished: boolean;
   specs: Omit<TablesInsert<'specs'>, 'laptop_id'>;
   priceEur: number | null;
   affiliateUrl: string;
@@ -240,6 +241,8 @@ function mapHit(hit: AlgoliaHit): LaptopDetail | null {
   // /portatiles/[slug], así que lo saneamos a un sufijo URL-safe. Conservamos
   // `rawSlug` para la URL de afiliado, que sí necesita el query param real.
   const slug = sanitizeSlug(rawSlug);
+  // Reacondicionado: PcComponentes lo marca con `?refurbished` en el slug crudo.
+  const refurbished = rawSlug.includes('?refurbished');
 
   const price = asNumber(hit.price);
   const description = asString(hit.description);
@@ -319,6 +322,7 @@ function mapHit(hit: AlgoliaHit): LaptopDetail | null {
     year: extractYear(name),
     description,
     imageUrl,
+    refurbished,
     specs: {
       cpu: cpuRaw,
       cpu_cores: asNumber(attr('nucleos', 'núcleos', 'cores')),
@@ -473,6 +477,7 @@ async function upsertLaptop(detail: LaptopDetail, retailerId: string): Promise<v
     year: detail.year,
     description: detail.description,
     image_url: detail.imageUrl,
+    refurbished: detail.refurbished,
   };
   const { data: laptop, error: lapErr } = await supabase
     .from('laptops')
