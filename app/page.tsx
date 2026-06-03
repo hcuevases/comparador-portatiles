@@ -63,10 +63,11 @@ export default async function Home({
 
   const supabase = await createClient();
 
-  // 1) Marcas del catálogo completo, para los pills del filtro.
-  const { data: allBrandsRows, error: brandsErr } = await supabase
-    .from('laptops')
-    .select('brand')
+  // 1) Marcas distintas del catálogo, para los pills del filtro. Vía RPC porque
+  //    `select('brand')` sobre toda la tabla choca con el límite de 1000 filas de
+  //    PostgREST con el catálogo grande (~3800) y dejaba fuera marcas.
+  const { data: brandRows, error: brandsErr } = await supabase
+    .rpc('distinct_brands')
     .returns<{ brand: string }[]>();
 
   if (brandsErr) {
@@ -77,7 +78,7 @@ export default async function Home({
     );
   }
 
-  const allBrands = Array.from(new Set((allBrandsRows ?? []).map((r) => r.brand))).sort();
+  const allBrands = (brandRows ?? []).map((r) => r.brand);
 
   // 2) Búsqueda + filtros (texto/marca/specs/precio) + paginación + count en una
   //    sola RPC server-side. El filtro de precio máximo va en el WHERE de la
