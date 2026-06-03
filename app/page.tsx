@@ -1,6 +1,7 @@
 import { LaptopFilters } from '@/components/laptop-filters';
 import { LaptopGrid, type LaptopCard } from '@/components/laptop-grid';
 import { Pagination } from '@/components/pagination';
+import { SortSelect } from '@/components/sort-select';
 import type { Tables } from '@/lib/supabase/database.types';
 import { createClient } from '@/lib/supabase/server';
 
@@ -34,6 +35,7 @@ type SearchParams = {
   oled?: string;
   refurbished?: string;
   screen?: string;
+  sort?: string;
   page?: string;
   message?: string;
 };
@@ -111,6 +113,7 @@ export default async function Home({
       p_refurbished: refurbished,
       p_screen_min: screenBucket?.min,
       p_screen_max: screenBucket?.max ?? undefined,
+      p_sort: params.sort || undefined,
       p_limit: PAGE_SIZE,
       p_offset: offset,
     })
@@ -194,11 +197,14 @@ function renderPage(
 
       <LaptopFilters brands={allBrands} />
 
-      <p className="mb-4 text-xs text-zinc-500">
-        {totalCount === 0
-          ? 'Sin resultados con los filtros actuales.'
-          : `${totalCount} ${totalCount === 1 ? 'portátil' : 'portátiles'} en total · página ${currentPage} de ${totalPages}`}
-      </p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-zinc-500">
+          {totalCount === 0
+            ? 'Sin resultados con los filtros actuales.'
+            : `${totalCount} ${totalCount === 1 ? 'portátil' : 'portátiles'} en total · página ${currentPage} de ${totalPages}`}
+        </p>
+        {totalCount > 0 && <SortSelect />}
+      </div>
 
       {cards.length === 0 ? (
         <EmptyState />
