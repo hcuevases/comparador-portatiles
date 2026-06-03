@@ -2,9 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
 
 import type { Tables } from '@/lib/supabase/database.types';
+import { useCompareSelection } from '@/lib/use-compare-selection';
 
 // Subconjunto de columnas que pintamos en la tarjeta. Derivado del esquema
 // generado para que cambios de tipo en specs se propaguen automáticamente.
@@ -21,40 +21,21 @@ export type LaptopCard = Pick<
   minPriceEur: number | null;
 };
 
-const MAX_COMPARE = 4;
-
 export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  function toggle(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        if (next.size >= MAX_COMPARE) return prev;
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
-  const ids = Array.from(selected);
-  const compareUrl = `/comparar?ids=${ids.join(',')}`;
-  const canCompare = ids.length >= 2;
+  const { toggle, isSelected, isFull } = useCompareSelection();
 
   return (
     <>
-      <ul className="grid grid-cols-1 gap-4 pb-28 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {laptops.map((l) => {
-          const isSelected = selected.has(l.id);
-          const disabled = !isSelected && selected.size >= MAX_COMPARE;
+          const selected = isSelected(l.id);
+          const disabled = !selected && isFull;
           return (
             <li
               key={l.id}
               className={
                 'relative rounded-lg border bg-white shadow-sm transition-colors dark:bg-zinc-950 ' +
-                (isSelected
+                (selected
                   ? 'border-blue-500 ring-2 ring-blue-500/20'
                   : 'border-zinc-200 dark:border-zinc-800')
               }
@@ -63,7 +44,7 @@ export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
               <label
                 className={
                   'absolute right-3 top-3 z-10 flex shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-md border px-2 py-1 text-xs ' +
-                  (isSelected
+                  (selected
                     ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
                     : 'border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900') +
                   (disabled ? ' cursor-not-allowed opacity-50' : '')
@@ -72,11 +53,11 @@ export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
                 <input
                   type="checkbox"
                   className="h-3 w-3 accent-blue-600"
-                  checked={isSelected}
+                  checked={selected}
                   onChange={() => toggle(l.id)}
                   disabled={disabled}
                 />
-                {isSelected ? 'Añadido' : 'Comparar'}
+                {selected ? 'Añadido' : 'Comparar'}
               </label>
 
               <Link
@@ -157,36 +138,6 @@ export function LaptopGrid({ laptops }: { laptops: LaptopCard[] }) {
           );
         })}
       </ul>
-
-      {selected.size > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-10 border-t border-zinc-200 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-8 py-4">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium">
-                {selected.size}/{MAX_COMPARE} seleccionados
-              </span>
-              <button
-                type="button"
-                onClick={() => setSelected(new Set())}
-                className="text-xs text-zinc-500 underline hover:text-zinc-900 dark:hover:text-zinc-100"
-              >
-                limpiar
-              </button>
-            </div>
-
-            {canCompare ? (
-              <Link
-                href={compareUrl}
-                className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                Comparar →
-              </Link>
-            ) : (
-              <span className="text-xs text-zinc-500">Elige al menos 2 portátiles</span>
-            )}
-          </div>
-        </div>
-      )}
     </>
   );
 }

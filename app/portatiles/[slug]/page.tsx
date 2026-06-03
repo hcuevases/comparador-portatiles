@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { AddToCompareButton } from '@/components/add-to-compare-button';
 import {
   PriceHistoryChart,
   type ChartDatum,
@@ -248,6 +249,7 @@ export default async function LaptopDetailPage({
           {minPrice !== null && (
             <p className="mt-4 text-lg font-medium">Desde {formatEur(minPrice)}</p>
           )}
+          <AddToCompareButton laptopId={laptop.id} />
         </div>
       </header>
 
