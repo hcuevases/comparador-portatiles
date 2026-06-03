@@ -228,12 +228,18 @@ function extractInches(s: string | null): number | null {
 function mapHit(hit: AlgoliaHit): LaptopDetail | null {
   const brand = asString(hit.brandName);
   const name = asString(hit.name);
-  const slug = asString(hit.slug);
+  const rawSlug = asString(hit.slug);
 
-  if (!brand || !name || !slug) {
+  if (!brand || !name || !rawSlug) {
     console.warn(`     ⚠ Hit sin brandName/name/slug. id=${hit.id}. Saltando.`);
     return null;
   }
+
+  // Algolia mete el query param de PcComponentes dentro del slug para los
+  // reacondicionados (".../...home?refurbished"). El `?` rompe nuestra ruta
+  // /portatiles/[slug], así que lo saneamos a un sufijo URL-safe. Conservamos
+  // `rawSlug` para la URL de afiliado, que sí necesita el query param real.
+  const slug = sanitizeSlug(rawSlug);
 
   const price = asNumber(hit.price);
   const description = asString(hit.description);
@@ -338,8 +344,23 @@ function mapHit(hit: AlgoliaHit): LaptopDetail | null {
       product_line: productLineRaw,
     },
     priceEur: price,
-    affiliateUrl: `${BASE}/${slug}`,
+    affiliateUrl: `${BASE}/${rawSlug}`,
   };
+}
+
+/**
+ * Convierte el slug crudo de Algolia en uno URL-safe para nuestra ruta
+ * /portatiles/[slug]. Algolia incluye el query param de PcComponentes dentro
+ * del slug (p.ej. "...home?refurbished"); el `?` rompe la URL. Pasamos todo a
+ * minúsculas y sustituimos cualquier carácter no [a-z0-9] por un guion,
+ * colapsando runs y recortando los extremos. Idempotente sobre slugs ya limpios.
+ * Debe coincidir con la transformación de db/migrations/0007_sanitize_slugs.sql.
+ */
+function sanitizeSlug(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 /**
