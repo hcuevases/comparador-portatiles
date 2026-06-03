@@ -17,6 +17,7 @@
  *   npm run scrape:catalog -- --limit 5 --dry-run
  *   npm run scrape:catalog -- --by-brand --limit 10000        (catálogo completo)
  *   npm run scrape:catalog -- --prices-only --by-brand --limit 10000
+ *   npm run scrape:catalog -- --check-alerts                  (avisos de bajada de precio)
  *
  * Algolia limita la paginación a 1000 resultados por query. La categoría tiene
  * ~3700 portátiles, así que para cogerlos todos hay que particionar por marca
@@ -33,7 +34,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { createClient } from '@supabase/supabase-js';
 import { config as loadEnv } from 'dotenv';
 
-import type { Database, TablesInsert } from '@/lib/supabase/database.types';
+import type { Database, Tables, TablesInsert } from '@/lib/supabase/database.types';
 
 loadEnv({ path: '.env.local' });
 
@@ -57,6 +58,10 @@ const { values: args } = parseArgs({
     // Algolia (1000 resultados por query). Sin esto solo alcanzamos los primeros
     // 1000 de los ~3700 portátiles del catálogo. Combinable con --prices-only.
     'by-brand': { type: 'boolean', default: false },
+    // Comprueba las alertas de bajada de precio y envía emails (vía Resend) a los
+    // usuarios cuyos modelos hayan bajado del precio de suscripción. No ingesta
+    // nada; se corre como paso aparte tras el refresco de precios.
+    'check-alerts': { type: 'boolean', default: false },
   },
 });
 
@@ -66,6 +71,7 @@ const DISCOVER_CATS = args['discover-categories'];
 const DISCOVER_ATTRS = args['discover-attrs'];
 const PRICES_ONLY = args['prices-only'];
 const BY_BRAND = args['by-brand'];
+const CHECK_ALERTS = args['check-alerts'];
 
 if (!Number.isFinite(LIMIT) || LIMIT < 1) {
   throw new Error('--limit debe ser un número positivo');
@@ -659,6 +665,133 @@ async function discoverAttributes(): Promise<void> {
   }
 }
 
+// ─── Alertas de bajada de precio ──────────────────────────────────────────
+
+type AlertRow = Pick<
+  Tables<'price_alerts'>,
+  'id' | 'user_id' | 'laptop_id' | 'baseline_price_eur' | 'last_notified_price_eur'
+>;
+
+function formatEuro(value: number): string {
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+/**
+ * Comprueba las alertas: para cada una, si el precio actual (último por retailer
+ * → min) bajó del baseline Y más bajo que el último avisado, envía email (Resend)
+ * y marca `last_notified_price_eur`. Sin `RESEND_API_KEY` corre en modo dry
+ * (loguea, no envía, no marca) para no perder el aviso cuando se active.
+ */
+async function checkAlerts(): Promise<void> {
+  console.log('🔔 Comprobando alertas de bajada de precio…');
+
+  const resendKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM ?? 'Comparador de portátiles <onboarding@resend.dev>';
+  const siteUrl = (process.env.SITE_URL ?? 'https://comparador-portatiles.vercel.app').replace(
+    /\/+$/,
+    '',
+  );
+  if (!resendKey) {
+    console.log('   (sin RESEND_API_KEY → modo dry: se loguea en vez de enviar)');
+  }
+
+  // Todas las alertas (service role omite RLS).
+  const { data: alerts, error } = await supabase
+    .from('price_alerts')
+    .select('id, user_id, laptop_id, baseline_price_eur, last_notified_price_eur')
+    .returns<AlertRow[]>();
+  if (error) {
+    console.error('  ✗ Error leyendo alertas:', error.message);
+    return;
+  }
+  if (!alerts || alerts.length === 0) {
+    console.log('  (sin alertas)');
+    return;
+  }
+
+  const laptopIds = Array.from(new Set(alerts.map((a) => a.laptop_id)));
+
+  const { data: prices } = await supabase
+    .rpc('current_min_prices', { p_ids: laptopIds })
+    .returns<{ laptop_id: string; min_price: number }[]>();
+  const currentById = new Map<string, number>();
+  for (const p of prices ?? []) currentById.set(p.laptop_id, Number(p.min_price));
+
+  const { data: laptops } = await supabase
+    .from('laptops')
+    .select('id, slug, brand, model')
+    .in('id', laptopIds)
+    .returns<{ id: string; slug: string; brand: string; model: string }[]>();
+  const laptopById = new Map((laptops ?? []).map((l) => [l.id, l] as const));
+
+  let sent = 0;
+  let triggered = 0;
+  for (const a of alerts) {
+    const current = currentById.get(a.laptop_id);
+    if (current === undefined) continue;
+    const baseline = Number(a.baseline_price_eur);
+    const lastNotified =
+      a.last_notified_price_eur === null ? null : Number(a.last_notified_price_eur);
+    // Dispara si bajó del baseline y más bajo que el último aviso (anti-spam).
+    const fires = current < baseline && (lastNotified === null || current < lastNotified);
+    if (!fires) continue;
+    triggered += 1;
+
+    const laptop = laptopById.get(a.laptop_id);
+    if (!laptop) continue;
+
+    const { data: u } = await supabase.auth.admin.getUserById(a.user_id);
+    const email = u?.user?.email;
+    if (!email) continue;
+
+    const fichaUrl = `${siteUrl}/portatiles/${laptop.slug}`;
+    const alertasUrl = `${siteUrl}/mis-alertas`;
+    const subject = `📉 Bajó de precio: ${laptop.brand} ${laptop.model}`;
+    const html = `
+      <div style="font-family: system-ui, sans-serif; max-width: 480px;">
+        <p>El portátil que vigilas ha bajado de precio:</p>
+        <p style="font-size:18px"><strong>${laptop.brand} ${laptop.model}</strong></p>
+        <p>Antes: <s>${formatEuro(baseline)}</s> → Ahora:
+          <strong style="color:#16a34a">${formatEuro(current)}</strong></p>
+        <p><a href="${fichaUrl}">Ver el portátil →</a></p>
+        <hr style="border:none;border-top:1px solid #eee">
+        <p style="font-size:12px;color:#888">Recibes esto porque creaste una alerta de precio.
+          Puedes quitarla en <a href="${alertasUrl}">Mis alertas</a>.</p>
+      </div>`;
+
+    if (!resendKey) {
+      console.log(
+        `  [dry] enviaría a ${email}: ${laptop.model} ${formatEuro(baseline)}→${formatEuro(current)}`,
+      );
+      continue; // No marcamos last_notified: se enviará cuando se active Resend.
+    }
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to: email, subject, html }),
+    });
+    if (!res.ok) {
+      console.error(`  ✗ Resend ${res.status} (${email}): ${(await res.text()).slice(0, 200)}`);
+      continue; // no marcamos last_notified si falló el envío
+    }
+    await supabase
+      .from('price_alerts')
+      .update({ last_notified_price_eur: current })
+      .eq('id', a.id);
+    sent += 1;
+    console.log(`  ✓ Aviso a ${email}: ${laptop.model} ${formatEuro(baseline)}→${formatEuro(current)}`);
+  }
+
+  console.log(
+    `🔔 Alertas: ${triggered} disparadas${resendKey ? `, ${sent} emails enviados` : ' (dry, 0 enviados)'}.`,
+  );
+}
+
 async function main() {
   if (DISCOVER_CATS) {
     console.log('🔎 Descubriendo categorías (no se escribe nada en DB)\n');
@@ -668,6 +801,10 @@ async function main() {
   if (DISCOVER_ATTRS) {
     console.log('🔎 Descubriendo atributos del índice (no se escribe nada en DB)\n');
     await discoverAttributes();
+    return;
+  }
+  if (CHECK_ALERTS) {
+    await checkAlerts();
     return;
   }
 
