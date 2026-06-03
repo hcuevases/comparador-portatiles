@@ -44,15 +44,24 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
   }
 
   // Debounce: cada cambio en `q` o `priceMax` se compromete al URL tras 300 ms sin tecla.
+  // Solo empujamos si el valor local DIFIERE del de la URL. Sin esta guarda, el
+  // efecto dispara al montar el componente (al volver a la home desde otra ruta)
+  // y, como `pushParam` borra `page`, te saca de la página en la que estabas.
   useEffect(() => {
-    const t = setTimeout(() => pushParam('q', q || null), DEBOUNCE_MS);
+    const t = setTimeout(() => {
+      if (q !== (searchParams.get('q') ?? '')) pushParam('q', q || null);
+    }, DEBOUNCE_MS);
     return () => clearTimeout(t);
     // pushParam es estable a nivel de render; el resto de deps lo capta el React Compiler.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
   useEffect(() => {
-    const t = setTimeout(() => pushParam('price_max', priceMax || null), DEBOUNCE_MS);
+    const t = setTimeout(() => {
+      if (priceMax !== (searchParams.get('price_max') ?? '')) {
+        pushParam('price_max', priceMax || null);
+      }
+    }, DEBOUNCE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priceMax]);
