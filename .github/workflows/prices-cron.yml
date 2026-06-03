@@ -34,10 +34,11 @@ jobs:
 
       - run: npm ci
 
-      - name: Refrescar precios (limit=500)
+      - name: Refrescar precios de todo el catálogo (by-brand)
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        # 500 cubre todo el catálogo actual (~100) con muchísimo margen.
-        # Cuando crezca a miles, subir aquí y/o reducir frecuencia.
-        run: npm run scrape:catalog -- --prices-only --limit 500
+        # --by-brand para refrescar precios de TODO el catálogo (~3,700), no solo
+        # los primeros 1000 que permite la paginación de Algolia. limit 10000 =
+        # tope de seguridad; el bucle para cuando se agotan las marcas.
+        run: npm run scrape:catalog -- --prices-only --by-brand --limit 10000
