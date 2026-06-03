@@ -32,6 +32,12 @@ export async function NavBar() {
                 Mis comparativas
               </Link>
               <Link
+                href="/mis-alertas"
+                className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Mis alertas
+              </Link>
+              <Link
                 href="/cuenta"
                 className="hidden text-xs text-zinc-500 hover:text-zinc-900 sm:inline dark:hover:text-zinc-100"
               >
