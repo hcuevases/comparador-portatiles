@@ -31,7 +31,10 @@ type SpecRow = Pick<
   | 'usage_type'
   | 'product_line'
 >;
-type PriceRow = Pick<Tables<'prices_history'>, 'laptop_id' | 'price_eur'>;
+type PriceRow = Pick<
+  Tables<'prices_history'>,
+  'laptop_id' | 'retailer_id' | 'price_eur' | 'observed_at'
+>;
 
 const MAX_COMPARE = 4;
 
@@ -89,8 +92,9 @@ export default async function CompararPage({
       .returns<SpecRow[]>(),
     supabase
       .from('prices_history')
-      .select('laptop_id, price_eur')
+      .select('laptop_id, retailer_id, price_eur, observed_at')
       .in('laptop_id', ids)
+      .order('observed_at', { ascending: true })
       .returns<PriceRow[]>(),
   ]);
 
@@ -110,11 +114,20 @@ export default async function CompararPage({
   const specsByLaptop = new Map<string, SpecRow>();
   for (const s of specsData ?? []) specsByLaptop.set(s.laptop_id, s);
 
-  const minPriceByLaptop = new Map<string, number>();
+  // Precio actual: último precio por (laptop, retailer) y luego el mínimo entre
+  // retailers — misma definición que la home (#18) y la ficha. pricesData viene
+  // ordenado asc por observed_at, así que el último que escribimos por
+  // (laptop|retailer) es el vigente.
+  const latestByLaptopRetailer = new Map<string, number>();
   for (const p of pricesData ?? []) {
-    const cur = minPriceByLaptop.get(p.laptop_id);
-    if (cur === undefined || p.price_eur < cur) {
-      minPriceByLaptop.set(p.laptop_id, p.price_eur);
+    latestByLaptopRetailer.set(`${p.laptop_id}|${p.retailer_id}`, Number(p.price_eur));
+  }
+  const minPriceByLaptop = new Map<string, number>();
+  for (const [key, price] of latestByLaptopRetailer) {
+    const laptopId = key.slice(0, key.indexOf('|'));
+    const cur = minPriceByLaptop.get(laptopId);
+    if (cur === undefined || price < cur) {
+      minPriceByLaptop.set(laptopId, price);
     }
   }
 
