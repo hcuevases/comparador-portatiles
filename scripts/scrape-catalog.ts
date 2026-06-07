@@ -28,8 +28,9 @@
  *   SUPABASE_SERVICE_ROLE_KEY
  *
  * Opcionales (solo para --check-alerts; sin ellas, modo dry sin enviar):
- *   GMAIL_USER           dirección de Gmail desde la que se envía
- *   GMAIL_APP_PASSWORD   App Password de Google (requiere 2FA en la cuenta)
+ *   BREVO_API_KEY        API key de Brevo (panel → SMTP & API → API Keys)
+ *   BREVO_SENDER_EMAIL   remitente verificado en Brevo (Senders, Domains & ...)
+ *   BREVO_SENDER_NAME    nombre del remitente (opcional, default "Comparador …")
  *   SITE_URL             URL pública del sitio (para los enlaces del email)
  */
 
@@ -38,7 +39,6 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 import { createClient } from '@supabase/supabase-js';
 import { config as loadEnv } from 'dotenv';
-import nodemailer from 'nodemailer';
 
 import type { Database, Tables, TablesInsert } from '@/lib/supabase/database.types';
 
@@ -687,28 +687,58 @@ function formatEuro(value: number): string {
 }
 
 /**
+ * Envía un email transaccional vía la API HTTP de Brevo. Lanza si la respuesta
+ * no es 2xx (el llamador decide qué hacer). Usa `fetch` nativo, sin SDK.
+ */
+async function sendBrevoEmail(opts: {
+  apiKey: string;
+  sender: { name: string; email: string };
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<void> {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': opts.apiKey,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender: opts.sender,
+      to: [{ email: opts.to }],
+      subject: opts.subject,
+      htmlContent: opts.html,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Brevo ${res.status}: ${body.slice(0, 200)}`);
+  }
+}
+
+/**
  * Comprueba las alertas: para cada una, si el precio actual (último por retailer
- * → min) bajó del baseline Y más bajo que el último avisado, envía email (Resend)
- * y marca `last_notified_price_eur`. Sin `RESEND_API_KEY` corre en modo dry
+ * → min) bajó del baseline Y más bajo que el último avisado, envía email (Brevo)
+ * y marca `last_notified_price_eur`. Sin `BREVO_API_KEY` corre en modo dry
  * (loguea, no envía, no marca) para no perder el aviso cuando se active.
  */
 async function checkAlerts(): Promise<void> {
   console.log('🔔 Comprobando alertas de bajada de precio…');
 
-  // Envío vía SMTP de Gmail (App Password). Sin credenciales → modo dry.
-  const gmailUser = process.env.GMAIL_USER;
-  const gmailPass = process.env.GMAIL_APP_PASSWORD;
+  // Envío vía API HTTP de Brevo. Sin API key → modo dry.
+  const brevoKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.BREVO_SENDER_EMAIL;
+  const senderName = process.env.BREVO_SENDER_NAME ?? 'Comparador de portátiles';
   const siteUrl = (process.env.SITE_URL ?? 'https://comparador-portatiles.vercel.app').replace(
     /\/+$/,
     '',
   );
-  const transporter =
-    gmailUser && gmailPass
-      ? nodemailer.createTransport({ service: 'gmail', auth: { user: gmailUser, pass: gmailPass } })
-      : null;
-  const from = `Comparador de portátiles <${gmailUser ?? 'noreply@example.com'}>`;
-  if (!transporter) {
-    console.log('   (sin GMAIL_USER/GMAIL_APP_PASSWORD → modo dry: se loguea en vez de enviar)');
+  const sender = brevoKey && senderEmail ? { name: senderName, email: senderEmail } : null;
+  if (!sender) {
+    console.log(
+      '   (sin BREVO_API_KEY/BREVO_SENDER_EMAIL → modo dry: se loguea en vez de enviar)',
+    );
   }
 
   // Todas las alertas (service role omite RLS).
@@ -775,7 +805,7 @@ async function checkAlerts(): Promise<void> {
           Puedes quitarla en <a href="${alertasUrl}">Mis alertas</a>.</p>
       </div>`;
 
-    if (!transporter) {
+    if (!sender) {
       console.log(
         `  [dry] enviaría a ${email}: ${laptop.model} ${formatEuro(baseline)}→${formatEuro(current)}`,
       );
@@ -783,7 +813,7 @@ async function checkAlerts(): Promise<void> {
     }
 
     try {
-      await transporter.sendMail({ from, to: email, subject, html });
+      await sendBrevoEmail({ apiKey: brevoKey!, sender, to: email, subject, html });
     } catch (err) {
       console.error(`  ✗ Email a ${email} falló: ${(err as Error).message}`);
       continue; // no marcamos last_notified si falló el envío
@@ -797,7 +827,7 @@ async function checkAlerts(): Promise<void> {
   }
 
   console.log(
-    `🔔 Alertas: ${triggered} disparadas${transporter ? `, ${sent} emails enviados` : ' (dry, 0 enviados)'}.`,
+    `🔔 Alertas: ${triggered} disparadas${sender ? `, ${sent} emails enviados` : ' (dry, 0 enviados)'}.`,
   );
 }
 

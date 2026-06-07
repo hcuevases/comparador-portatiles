@@ -48,9 +48,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # Sin estos secrets corre en modo dry (loguea, no envía). Para activar el
-          # envío vía Gmail: GMAIL_USER (tu dirección) + GMAIL_APP_PASSWORD (App
-          # Password de Google, requiere 2FA) + SITE_URL (URL pública del sitio).
-          GMAIL_USER: ${{ secrets.GMAIL_USER }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          # envío vía Brevo: BREVO_API_KEY + BREVO_SENDER_EMAIL (remitente
+          # verificado en Brevo) + SITE_URL (URL pública del sitio). Opcional:
+          # BREVO_SENDER_NAME (default "Comparador de portátiles").
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
           SITE_URL: ${{ secrets.SITE_URL }}
         run: npm run scrape:catalog -- --check-alerts
