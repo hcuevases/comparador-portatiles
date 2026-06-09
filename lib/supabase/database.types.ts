@@ -244,6 +244,7 @@ export type Database = {
           battery_wh: number | null
           cpu: string | null
           cpu_cores: number | null
+          enriched_at: string | null
           gpu: string | null
           gpu_vram_gb: number | null
           keyboard_lang: string | null
@@ -267,6 +268,7 @@ export type Database = {
           battery_wh?: number | null
           cpu?: string | null
           cpu_cores?: number | null
+          enriched_at?: string | null
           gpu?: string | null
           gpu_vram_gb?: number | null
           keyboard_lang?: string | null
@@ -290,6 +292,7 @@ export type Database = {
           battery_wh?: number | null
           cpu?: string | null
           cpu_cores?: number | null
+          enriched_at?: string | null
           gpu?: string | null
           gpu_vram_gb?: number | null
           keyboard_lang?: string | null
