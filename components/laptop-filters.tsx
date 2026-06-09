@@ -19,7 +19,12 @@ const FEATURE_PILLS = [
   { key: 'gaming', label: 'Gaming' },
   { key: 'ai', label: 'Optimizado para IA' },
   { key: 'oled', label: 'OLED' },
-  { key: 'refurbished', label: 'Reacondicionado' },
+] as const;
+
+// Estado del producto (tri-estado, searchParam `?cond=`). Vacío = todos.
+const CONDITION_OPTIONS = [
+  { key: 'nuevos', label: 'Nuevos' },
+  { key: 'reacond', label: 'Reacondicionados' },
 ] as const;
 
 // Buckets de tamaño de pantalla. La `key` es la del searchParam `?screen=` y debe
@@ -113,6 +118,10 @@ export function LaptopFilters({
     pushParam('line', value);
   }
 
+  function setCond(value: string | null) {
+    pushParam('cond', value);
+  }
+
   function clearAll() {
     setQ('');
     setPriceMax('');
@@ -126,6 +135,7 @@ export function LaptopFilters({
   const currentRamMin = Number(searchParams.get('ram_min') ?? '') || 0;
   const currentScreen = searchParams.get('screen') ?? '';
   const currentLine = searchParams.get('line') ?? '';
+  const currentCond = searchParams.get('cond') ?? '';
   const anyFeature = FEATURE_PILLS.some((f) => searchParams.get(f.key) === '1');
   const anyActive =
     q !== '' ||
@@ -133,6 +143,7 @@ export function LaptopFilters({
     currentRamMin > 0 ||
     currentScreen !== '' ||
     currentLine !== '' ||
+    currentCond !== '' ||
     priceMax !== '' ||
     anyFeature;
 
@@ -295,6 +306,45 @@ export function LaptopFilters({
                 key={key}
                 type="button"
                 onClick={() => setScreen(key)}
+                aria-pressed={active}
+                className={
+                  'rounded-full border px-3 py-1 text-xs transition-colors ' +
+                  (active
+                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
+                }
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Estado del producto (nuevos / reacondicionados / todos) */}
+      <div>
+        <p className="mb-1.5 text-xs font-medium text-zinc-500">Estado</p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setCond(null)}
+            aria-pressed={currentCond === ''}
+            className={
+              'rounded-full border px-3 py-1 text-xs transition-colors ' +
+              (currentCond === ''
+                ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
+            }
+          >
+            Todos
+          </button>
+          {CONDITION_OPTIONS.map(({ key, label }) => {
+            const active = currentCond === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setCond(key)}
                 aria-pressed={active}
                 className={
                   'rounded-full border px-3 py-1 text-xs transition-colors ' +
