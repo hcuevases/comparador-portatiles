@@ -6,7 +6,13 @@ export const metadata = {
     'Dinos qué buscas en lenguaje natural y te recomendamos portátiles reales del catálogo con su precio actual.',
 };
 
-export default function AsistentePage() {
+export default async function AsistentePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  // `?q=` viene del buscador de la home: se auto-envía como primer mensaje.
+  const { q } = await searchParams;
   return (
     <main className="mx-auto flex min-h-[80vh] max-w-3xl flex-col p-6 sm:p-8">
       <header className="mb-6">
@@ -20,7 +26,7 @@ export default function AsistentePage() {
         </p>
       </header>
 
-      <ChatAssistant />
+      <ChatAssistant initialQuery={q} />
     </main>
   );
 }

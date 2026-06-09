@@ -19,9 +19,10 @@ const SUGERENCIAS = [
   'Ultrabook con pantalla OLED para diseño',
 ];
 
-export function ChatAssistant() {
+export function ChatAssistant({ initialQuery }: { initialQuery?: string }) {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const didInit = useRef(false);
 
   const { messages, sendMessage, setMessages, status, error } = useChat<RecomendadorUIMessage>({
     transport: new DefaultChatTransport({ api: '/api/chat' }),
@@ -30,9 +31,27 @@ export function ChatAssistant() {
 
   const busy = status === 'submitted' || status === 'streaming';
 
-  // Restaurar al montar (p.ej. al volver atrás desde una ficha). Hidratación-segura:
-  // arrancamos vacío en SSR y poblamos tras montar.
+  // Al montar (una vez): si venimos del buscador de la home con ?q=, arrancamos una
+  // conversación NUEVA con esa consulta y limpiamos ?q de la URL (para que volver atrás
+  // no la reenvíe). Si no, restauramos la conversación previa (hidratación-segura).
   useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
+    const q = initialQuery?.trim();
+    if (q) {
+      try {
+        sessionStorage.removeItem(STORAGE_KEY);
+      } catch {
+        /* ignoramos */
+      }
+      sendMessage({ text: q });
+      try {
+        window.history.replaceState(null, '', '/asistente');
+      } catch {
+        /* ignoramos */
+      }
+      return;
+    }
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -42,7 +61,7 @@ export function ChatAssistant() {
     } catch {
       /* sessionStorage no disponible o JSON corrupto: ignoramos */
     }
-  }, [setMessages]);
+  }, [initialQuery, sendMessage, setMessages]);
 
   // Guardar en cada cambio.
   useEffect(() => {
