@@ -23,6 +23,12 @@ export async function NavBar() {
         </Link>
 
         <nav className="flex items-center gap-4 text-sm">
+          <Link
+            href="/asistente"
+            className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            Asistente IA
+          </Link>
           {user ? (
             <>
               <Link

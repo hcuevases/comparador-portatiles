@@ -120,13 +120,19 @@ export default function PrivacidadPage() {
             </li>
             <li>
               <strong>Vercel</strong> — alojamiento de la web, con ejecución en región de la{' '}
-              <strong>Unión Europea</strong> (Frankfurt).
+              <strong>Unión Europea</strong> (Frankfurt). También provee el <strong>asistente
+              IA</strong>: los mensajes que escribes en el asistente se envían a un modelo de
+              lenguaje (Claude, de Anthropic) a través de Vercel AI Gateway <strong>solo para
+              generar la respuesta</strong>. No los guardamos, y el procesado es sin retención por
+              parte del proveedor del modelo. No escribas datos personales en el chat: no los
+              necesita para recomendarte.
             </li>
           </ul>
           <p className="mt-2">
-            Ambos actúan como encargados del tratamiento bajo los acuerdos correspondientes. No se
-            realizan transferencias internacionales de tus datos fuera del Espacio Económico
-            Europeo.
+            Estos proveedores actúan como encargados del tratamiento bajo los acuerdos
+            correspondientes. Salvo lo indicado para el asistente IA (cuyo proveedor del modelo
+            puede operar fuera del EEE bajo garantías adecuadas), no se realizan transferencias
+            internacionales de tus datos fuera del Espacio Económico Europeo.
           </p>
         </Section>
 
