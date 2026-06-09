@@ -219,10 +219,15 @@ async function loadTargets(): Promise<LaptopRow[]> {
     return data ?? [];
   }
   // Portátiles cuya specs aún no tiene los 6 campos (al menos cpu_cores null).
+  // Excluimos los refurbished: su ficha da 404 casi siempre (agotados), así que no
+  // se pueden enriquecer desde su propia página y solo gastan peticiones. Medido:
+  // 461 de 462 de los 404 de una tanda eran -refurbished. Quedan en null; si se
+  // quisieran cubrir, se copiarían del modelo "normal" equivalente (otra tarea).
   const { data } = await supabase
     .from('specs')
-    .select('laptop_id, laptops!inner(id, slug)')
+    .select('laptop_id, laptops!inner(id, slug, refurbished)')
     .is('cpu_cores', null)
+    .eq('laptops.refurbished', false)
     .limit(LIMIT)
     .returns<{ laptops: LaptopRow }[]>();
   return (data ?? []).map((r) => r.laptops);
