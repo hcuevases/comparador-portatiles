@@ -3,13 +3,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --accent: #06b6d4; /* cian eléctrico */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +25,54 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Antes era Arial (genérico); ahora la sans del proyecto. */
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Titulares con la fuente display (Bricolage Grotesque). */
+.font-display {
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+
+/* ── Hero oscuro: malla de gradientes + grano sutil ───────────────────────── */
+.hero-mesh {
+  background-color: #07070b;
+  background-image:
+    radial-gradient(55% 80% at 12% 8%, rgba(6, 182, 212, 0.2), transparent 60%),
+    radial-gradient(50% 70% at 92% 18%, rgba(99, 102, 241, 0.24), transparent 60%),
+    radial-gradient(60% 90% at 72% 105%, rgba(16, 185, 129, 0.13), transparent 55%);
+}
+
+.hero-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Entrada en cascada ───────────────────────────────────────────────────── */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  opacity: 0;
+  animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise {
+    animation: none;
+    opacity: 1;
+  }
 }

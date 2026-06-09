@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, Geist, Geist_Mono } from 'next/font/google';
 
 import { CompareBar } from '@/components/compare-bar';
 import { CookieBanner } from '@/components/cookie-banner';
@@ -18,6 +18,13 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+// Fuente display con carácter para titulares (no Inter/Arial/Space Grotesk).
+const display = Bricolage_Grotesque({
+  variable: '--font-display',
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+});
+
 export const metadata: Metadata = {
   title: 'Comparador de portátiles',
   description: 'Compara especificaciones y precios de portátiles de varios retailers.',
@@ -31,7 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <NavBar />

@@ -122,12 +122,6 @@ export function LaptopFilters({
     pushParam('cond', value);
   }
 
-  // Lleva lo escrito en el buscador al asistente IA (lo envía como primer mensaje).
-  function askAI() {
-    const text = q.trim();
-    router.push(text ? `/asistente?q=${encodeURIComponent(text)}` : '/asistente');
-  }
-
   function clearAll() {
     setQ('');
     setPriceMax('');
@@ -158,44 +152,20 @@ export function LaptopFilters({
       aria-label="Filtros de portátiles"
       className="mb-6 space-y-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
     >
-      {/* Búsqueda + IA + precio + limpiar en una fila */}
+      {/* Búsqueda + precio + limpiar en una fila */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-0 flex-1">
           <label htmlFor="filter-q" className="block text-xs font-medium text-zinc-500">
-            Buscar o preguntar a la IA
+            Buscar
           </label>
-          <div className="mt-1 flex gap-2">
-            <input
-              id="filter-q"
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                // Enter envía la consulta a la IA (escribir filtra en vivo igualmente).
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  askAI();
-                }
-              }}
-              placeholder="Marca, modelo… o dime qué buscas (ej: ligero para programar, menos de 1000€)"
-              className="block w-full min-w-0 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
-            />
-            <button
-              type="button"
-              onClick={askAI}
-              title="Pregúntale a la IA con lo que has escrito"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-gradient-to-r from-blue-600 to-violet-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
-            >
-              <span aria-hidden>✨</span>
-              <span className="hidden sm:inline">Pregúntale a la IA</span>
-              <span className="sm:hidden">IA</span>
-            </button>
-          </div>
-          <p className="mt-1 text-xs text-zinc-400">
-            Escribe para filtrar al instante, o pulsa{' '}
-            <span className="font-medium text-violet-600 dark:text-violet-400">✨ la IA</span> para
-            que te recomiende.
-          </p>
+          <input
+            id="filter-q"
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Marca o modelo (ej: ThinkPad, MacBook)"
+            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+          />
         </div>
 
         <div>

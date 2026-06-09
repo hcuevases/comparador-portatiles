@@ -1,3 +1,4 @@
+import { HomeHero } from '@/components/home-hero';
 import { LaptopFilters } from '@/components/laptop-filters';
 import { LaptopGrid, type LaptopCard } from '@/components/laptop-grid';
 import { Pagination } from '@/components/pagination';
@@ -207,11 +208,13 @@ function renderPage(
   }));
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
-      <header className="mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight">Comparador de portátiles</h1>
-        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          Marca 2-4 portátiles y pulsa Comparar para verlos lado a lado.
+    <main className="mx-auto max-w-5xl p-4 sm:p-8">
+      <HomeHero />
+
+      <header className="mb-4">
+        <h2 className="font-display text-2xl font-bold tracking-tight">Explora el catálogo</h2>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          Filtra a tu gusto y marca 2-4 portátiles para comparar lado a lado.
         </p>
       </header>
 

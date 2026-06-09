@@ -18,16 +18,16 @@ export async function NavBar() {
   return (
     <header className="border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-8 py-3">
-        <Link href="/" className="text-sm font-medium tracking-tight">
+        <Link href="/" className="font-display text-base font-extrabold tracking-tight">
           Comparador
         </Link>
 
         <nav className="flex items-center gap-4 text-sm">
           <Link
             href="/asistente"
-            className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            className="inline-flex items-center gap-1 font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300"
           >
-            Asistente IA
+            <span aria-hidden>✨</span> Asistente IA
           </Link>
           {user ? (
             <>
