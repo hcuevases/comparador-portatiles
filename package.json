@@ -15,6 +15,7 @@
     "enrich:specs": "tsx scripts/enrich-specs.ts"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.80",
     "@ai-sdk/react": "^3.0.201",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",

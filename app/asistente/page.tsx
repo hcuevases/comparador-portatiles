@@ -16,8 +16,7 @@ export default function AsistentePage() {
           precio actual y enlace a la ficha.
         </p>
         <p className="mt-1 text-xs text-zinc-400">
-          Tus mensajes se procesan con Claude (vía Vercel) solo para responderte; no se
-          guardan.
+          Tus mensajes se procesan con Google Gemini solo para responderte; no se guardan.
         </p>
       </header>
 

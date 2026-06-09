@@ -1,12 +1,14 @@
+import { google } from '@ai-sdk/google';
 import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 
 import { buscarPortatiles, detallePortatil } from './tools';
 
-// Recomendador conversacional. Modelo vía Vercel AI Gateway (string "provider/model";
-// requiere AI_GATEWAY_API_KEY o OIDC en Vercel). Haiku 4.5: rápido y económico, punto
-// dulce para recomendar sobre el catálogo. Id obtenido en vivo del gateway.
+// Recomendador conversacional. Modelo: Google Gemini 2.5 Flash vía @ai-sdk/google
+// DIRECTO (no el AI Gateway de Vercel, que exige tarjeta). Google AI Studio tiene
+// tier GRATIS sin tarjeta; la key va en GOOGLE_GENERATIVE_AI_API_KEY. Flash es rápido,
+// económico y muy bueno en tool-calling — de sobra para recomendar sobre el catálogo.
 export const recomendadorAgent = new ToolLoopAgent({
-  model: 'anthropic/claude-haiku-4.5',
+  model: google('gemini-2.5-flash'),
   tools: { buscarPortatiles, detallePortatil },
   instructions: `Eres el asistente del "Comparador de portátiles", una web que ayuda a elegir portátil entre un catálogo real con precios actualizados.
 
