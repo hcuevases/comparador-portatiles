@@ -349,6 +349,7 @@ export type Database = {
       search_laptops: {
         Args: {
           p_ai?: boolean
+          p_battery_min?: number
           p_brands?: string[]
           p_gaming?: boolean
           p_limit?: number
@@ -358,10 +359,13 @@ export type Database = {
           p_product_line?: string
           p_q?: string
           p_ram_min?: number
+          p_refresh_min?: number
           p_refurbished?: boolean
           p_screen_max?: number
           p_screen_min?: number
           p_sort?: string
+          p_vram_min?: number
+          p_weight_max?: number
         }
         Returns: {
           brand: string
