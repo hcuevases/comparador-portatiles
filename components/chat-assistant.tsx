@@ -2,10 +2,15 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { LaptopGrid } from '@/components/laptop-grid';
 import type { RecomendadorUIMessage } from '@/lib/ai/agent';
+
+// Persistimos la conversación en sessionStorage (por pestaña, nunca al servidor →
+// efímero/GDPR). Así, al abrir una ficha recomendada y volver atrás, el historial y
+// las demás recomendaciones siguen ahí. Se borra al cerrar la pestaña.
+const STORAGE_KEY = 'asistente-ia:conversacion';
 
 const SUGERENCIAS = [
   'Portátil para programar, ligero y menos de 1200€',
@@ -18,12 +23,44 @@ export function ChatAssistant() {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { messages, sendMessage, status, error } = useChat<RecomendadorUIMessage>({
+  const { messages, sendMessage, setMessages, status, error } = useChat<RecomendadorUIMessage>({
     transport: new DefaultChatTransport({ api: '/api/chat' }),
     onFinish: () => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }),
   });
 
   const busy = status === 'submitted' || status === 'streaming';
+
+  // Restaurar al montar (p.ej. al volver atrás desde una ficha). Hidratación-segura:
+  // arrancamos vacío en SSR y poblamos tras montar.
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as RecomendadorUIMessage[];
+        if (parsed.length > 0) setMessages(parsed);
+      }
+    } catch {
+      /* sessionStorage no disponible o JSON corrupto: ignoramos */
+    }
+  }, [setMessages]);
+
+  // Guardar en cada cambio.
+  useEffect(() => {
+    try {
+      if (messages.length > 0) sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch {
+      /* ignoramos */
+    }
+  }, [messages]);
+
+  function clearChat() {
+    setMessages([]);
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignoramos */
+    }
+  }
 
   function send(text: string) {
     const t = text.trim();
@@ -52,6 +89,18 @@ export function ChatAssistant() {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {messages.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={clearChat}
+            className="text-xs text-zinc-500 underline hover:text-zinc-900 dark:hover:text-zinc-100"
+          >
+            Nueva conversación
+          </button>
         </div>
       )}
 
