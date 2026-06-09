@@ -3,8 +3,11 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
+type ProductLine = { value: string; count: number };
+
 type Props = {
   brands: string[];
+  productLines: ProductLine[];
   ramOptions?: number[];
 };
 
@@ -28,7 +31,11 @@ const SCREEN_OPTIONS = [
   { key: '17', label: '17″' },
 ] as const;
 
-export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Props) {
+export function LaptopFilters({
+  brands,
+  productLines,
+  ramOptions = DEFAULT_RAM_OPTIONS,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -102,6 +109,10 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
     pushParam('screen', value);
   }
 
+  function setLine(value: string | null) {
+    pushParam('line', value);
+  }
+
   function clearAll() {
     setQ('');
     setPriceMax('');
@@ -114,12 +125,14 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
   const selectedBrands = new Set((searchParams.get('brand') ?? '').split(',').filter(Boolean));
   const currentRamMin = Number(searchParams.get('ram_min') ?? '') || 0;
   const currentScreen = searchParams.get('screen') ?? '';
+  const currentLine = searchParams.get('line') ?? '';
   const anyFeature = FEATURE_PILLS.some((f) => searchParams.get(f.key) === '1');
   const anyActive =
     q !== '' ||
     selectedBrands.size > 0 ||
     currentRamMin > 0 ||
     currentScreen !== '' ||
+    currentLine !== '' ||
     priceMax !== '' ||
     anyFeature;
 
@@ -196,6 +209,28 @@ export function LaptopFilters({ brands, ramOptions = DEFAULT_RAM_OPTIONS }: Prop
           })}
         </div>
       </div>
+
+      {/* Serie (product_line) */}
+      {productLines.length > 0 && (
+        <div>
+          <label htmlFor="filter-line" className="mb-1.5 block text-xs font-medium text-zinc-500">
+            Serie
+          </label>
+          <select
+            id="filter-line"
+            value={currentLine}
+            onChange={(e) => setLine(e.target.value || null)}
+            className="block w-full max-w-xs rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            <option value="">Todas las series</option>
+            {productLines.map(({ value, count }) => (
+              <option key={value} value={value}>
+                {value} ({count})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* RAM mínima */}
       <div>

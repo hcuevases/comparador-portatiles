@@ -336,6 +336,13 @@ export type Database = {
           brand: string
         }[]
       }
+      distinct_product_lines: {
+        Args: never
+        Returns: {
+          n: number
+          product_line: string
+        }[]
+      }
       search_laptops: {
         Args: {
           p_ai?: boolean
@@ -345,6 +352,7 @@ export type Database = {
           p_offset?: number
           p_oled?: boolean
           p_price_max?: number
+          p_product_line?: string
           p_q?: string
           p_ram_min?: number
           p_refurbished?: boolean
