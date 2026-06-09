@@ -71,6 +71,15 @@ export default async function LoginPage({
         <SubmitButton pendingText="Entrando…" fullWidth>
           Iniciar sesión
         </SubmitButton>
+
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <Link
+            href="/reset-password"
+            className="text-blue-600 underline hover:text-blue-700"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
       </form>
     </>
   );

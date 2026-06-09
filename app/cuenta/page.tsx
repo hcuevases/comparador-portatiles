@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { SubmitButton } from '@/components/submit-button';
@@ -50,6 +51,15 @@ export default async function CuentaPage({
           <dt className="text-zinc-500">Cuenta creada</dt>
           <dd>{formatDate(user.created_at)}</dd>
         </dl>
+
+        <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+          <Link
+            href="/cuenta/password"
+            className="text-sm text-blue-600 underline hover:text-blue-700"
+          >
+            Cambiar contraseña
+          </Link>
+        </div>
       </section>
 
       {/* Danger zone: borrado de cuenta */}

@@ -79,6 +79,34 @@ export async function signUp(formData: FormData) {
   );
 }
 
+export async function requestPasswordReset(formData: FormData) {
+  const email = String(formData.get('email') ?? '').trim();
+
+  if (!email) {
+    redirect('/reset-password?error=' + encodeURIComponent('Introduce tu email.'));
+  }
+
+  const supabase = await createClient();
+
+  // redirectTo apunta a nuestro handler /auth/confirm (mismo flujo token_hash que
+  // signup): verifica el OTP de recovery, crea sesión y manda a `next`, donde el
+  // usuario fija la nueva contraseña.
+  const origin = (await headers()).get('origin') ?? '';
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/confirm?next=/cuenta/password`,
+  });
+
+  // Respuesta SIEMPRE neutra: no revelamos si el email existe (anti-enumeración).
+  // Ignoramos a propósito el resultado de resetPasswordForEmail —incluido un posible
+  // rate limit— para no filtrar nada por el mensaje.
+  redirect(
+    '/login?message=' +
+      encodeURIComponent(
+        'Si hay una cuenta con ese email, te hemos enviado un enlace para restablecer la contraseña.',
+      ),
+  );
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
