@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { HomeHero } from '@/components/home-hero';
 import { LaptopFilters } from '@/components/laptop-filters';
 import { LaptopGrid, type LaptopCard } from '@/components/laptop-grid';
@@ -236,7 +238,7 @@ function renderPage(
       </div>
 
       {cards.length === 0 ? (
-        <EmptyState />
+        <EmptyState query={searchParams.q} />
       ) : (
         <LaptopGrid laptops={cards} backQuery={catalogQuery} />
       )}
@@ -251,13 +253,20 @@ function renderPage(
   );
 }
 
-function EmptyState() {
+function EmptyState({ query }: { query?: string }) {
+  const q = (query ?? '').trim();
   return (
-    <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
-      <h2 className="text-lg font-medium">Nada que mostrar.</h2>
+    <div className="rounded-xl border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
+      <h2 className="text-lg font-bold">Nada que mostrar.</h2>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        Prueba a ampliar los filtros o pulsa <em>limpiar filtros</em> arriba.
+        Prueba a ampliar los filtros{q ? ', o deja que la IA lo busque por ti' : ' o pulsa limpiar filtros arriba'}.
       </p>
+      <Link
+        href={q ? `/asistente?q=${encodeURIComponent(q)}` : '/asistente'}
+        className="mt-4 inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-cyan-700"
+      >
+        <span aria-hidden>✨</span> {q ? `Pregúntale a la IA por "${q.slice(0, 30)}"` : 'Pregúntale a la IA'}
+      </Link>
     </div>
   );
 }

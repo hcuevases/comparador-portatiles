@@ -47,9 +47,9 @@ export function LaptopGrid({
             <li
               key={l.id}
               className={
-                'relative rounded-lg border bg-white shadow-sm transition-colors dark:bg-zinc-950 ' +
+                'group relative overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-zinc-900/10 dark:bg-zinc-950 dark:hover:shadow-black/40 ' +
                 (selected
-                  ? 'border-cyan-500 ring-2 ring-cyan-500/20'
+                  ? 'border-cyan-500 ring-2 ring-cyan-500/30'
                   : 'border-zinc-200 dark:border-zinc-800')
               }
             >
@@ -79,14 +79,14 @@ export function LaptopGrid({
                     ? `/portatiles/${l.slug}?from=${encodeURIComponent(backQuery)}`
                     : `/portatiles/${l.slug}`
                 }
-                className="block hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40"
+                className="block"
               >
                 {/* Imagen del producto (con fallback si no hay). Altura fija
                     para que las cards estén alineadas independientemente del
                     aspect ratio de cada imagen. object-contain para no recortar. */}
-                <div className="relative h-40 w-full overflow-hidden rounded-t-lg bg-zinc-50 dark:bg-zinc-900">
+                <div className="relative h-44 w-full overflow-hidden bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-900 dark:to-zinc-950">
                   {refurbished && (
-                    <span className="absolute left-2 top-2 z-10 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                    <span className="absolute left-2 top-2 z-10 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                       Reacondicionado
                     </span>
                   )}
@@ -96,7 +96,7 @@ export function LaptopGrid({
                       alt={`${l.brand} ${l.model}`}
                       fill
                       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      className="object-contain p-3"
+                      className="object-contain p-3 transition-transform duration-300 group-hover:scale-[1.04]"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-zinc-400">
@@ -107,8 +107,12 @@ export function LaptopGrid({
 
                 <div className="p-4 pr-24">
                 <div className="min-w-0">
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">{l.brand}</p>
-                  <h2 className="truncate text-lg font-medium leading-tight">{l.model}</h2>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-400">
+                    {l.brand}
+                  </p>
+                  <h2 className="truncate font-display text-lg font-bold leading-tight">
+                    {l.model}
+                  </h2>
                   {l.year && (
                     <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{l.year}</p>
                   )}
@@ -150,7 +154,12 @@ export function LaptopGrid({
                 )}
 
                 {l.minPriceEur !== null ? (
-                  <p className="mt-3 text-sm font-medium">Desde {formatEur(l.minPriceEur)}</p>
+                  <p className="mt-3 flex items-baseline gap-1">
+                    <span className="text-xs text-zinc-500">Desde</span>
+                    <span className="font-display text-xl font-extrabold tracking-tight">
+                      {formatEur(l.minPriceEur)}
+                    </span>
+                  </p>
                 ) : (
                   <p className="mt-3 text-xs text-zinc-400">Sin precio aún</p>
                 )}
