@@ -328,7 +328,11 @@ async function main(): Promise<void> {
 
   // headless pasa el reto de Cloudflare en una sesión nueva. NO bloqueamos recursos
   // (imágenes/JS): el JS del challenge los necesita y bloquearlos lo rompe.
-  const browser: Browser = await chromium.launch({ headless: true });
+  let browser: Browser = await chromium.launch({ headless: true });
+
+  // Reiniciar el navegador cada N fichas: en tandas largas (~900+) Chromium acumula
+  // memoria y el proceso crashea (visto exit 9 cerca de 915). Relanzarlo lo evita.
+  const RESTART_EVERY = 150;
 
   let ok = 0;
   let notFound = 0;
@@ -336,6 +340,10 @@ async function main(): Promise<void> {
   let noData = 0;
   for (const [i, laptop] of targets.entries()) {
     const url = `${BASE}/${laptop.slug}`;
+    if (i > 0 && i % RESTART_EVERY === 0) {
+      await browser.close();
+      browser = await chromium.launch({ headless: true });
+    }
     // Contexto FRESCO por ficha: Cloudflare challenge a partir de la 2ª petición si
     // se reutiliza la sesión, y su reto no se autorresuelve en headless. Una sesión
     // nueva por ficha pasa el reto como lo hace una visita normal.
