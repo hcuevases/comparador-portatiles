@@ -29,7 +29,36 @@ type SearchRow = {
 
 type SpecRow = Pick<
   Tables<'specs'>,
-  'laptop_id' | 'cpu' | 'ram_gb' | 'storage_gb' | 'screen_inches' | 'weight_kg'
+  | 'laptop_id'
+  | 'cpu'
+  | 'cpu_cores'
+  | 'ram_gb'
+  | 'storage_gb'
+  | 'gpu'
+  | 'gpu_vram_gb'
+  | 'screen_inches'
+  | 'screen_refresh_hz'
+  | 'weight_kg'
+  | 'battery_wh'
+  | 'ports'
+>;
+
+// Specs que ve el modelo por cada resultado. Las 5 primeras coinciden con las que
+// pinta la tarjeta (LaptopCard); las enriquecidas (refresh, VRAM, batería…) las usa el
+// modelo para justificar/comparar, aunque la tarjeta no las muestre.
+type RecoSpecs = Pick<
+  SpecRow,
+  | 'cpu'
+  | 'cpu_cores'
+  | 'ram_gb'
+  | 'storage_gb'
+  | 'gpu'
+  | 'gpu_vram_gb'
+  | 'screen_inches'
+  | 'screen_refresh_hz'
+  | 'weight_kg'
+  | 'battery_wh'
+  | 'ports'
 >;
 
 // Forma compacta que ve el modelo Y que la UI usa para pintar tarjetas. Incluye `id`
@@ -42,7 +71,7 @@ export type RecoLaptop = {
   year: number | null;
   image_url: string | null;
   minPriceEur: number | null;
-  specs: Pick<SpecRow, 'cpu' | 'ram_gb' | 'storage_gb' | 'screen_inches' | 'weight_kg'> | null;
+  specs: RecoSpecs | null;
 };
 
 function escapeIlike(input: string): string {
@@ -68,6 +97,14 @@ export const buscarPortatiles = tool({
       ),
     screen_min: z.number().optional().describe('Pulgadas mínimas de pantalla.'),
     screen_max: z.number().optional().describe('Pulgadas máximas (ej: 14 para algo ligero/pequeño).'),
+    refresh_min: z
+      .number()
+      .int()
+      .optional()
+      .describe('Tasa de refresco mínima en Hz (ej: 144 para gaming fluido).'),
+    weight_max: z.number().optional().describe('Peso máximo en kg (ej: 1.4 para ultraligero).'),
+    vram_min: z.number().int().optional().describe('VRAM mínima de la GPU dedicada en GB (ej: 8).'),
+    battery_min: z.number().optional().describe('Capacidad mínima de batería en Wh (ej: 70 para buena autonomía).'),
     sort: z.enum(['price_asc', 'price_desc']).optional().describe('Ordenar por precio.'),
     limit: z.number().int().min(1).max(8).default(6).describe('Cuántos devolver (máx 8).'),
   }),
@@ -86,6 +123,10 @@ export const buscarPortatiles = tool({
         p_refurbished: args.refurbished,
         p_screen_min: args.screen_min,
         p_screen_max: args.screen_max,
+        p_refresh_min: args.refresh_min,
+        p_weight_max: args.weight_max,
+        p_vram_min: args.vram_min,
+        p_battery_min: args.battery_min,
         p_sort: args.sort,
         p_limit: args.limit,
         p_offset: 0,
@@ -98,7 +139,9 @@ export const buscarPortatiles = tool({
 
     const { data: specsData } = await supabase
       .from('specs')
-      .select('laptop_id, cpu, ram_gb, storage_gb, screen_inches, weight_kg')
+      .select(
+        'laptop_id, cpu, cpu_cores, ram_gb, storage_gb, gpu, gpu_vram_gb, screen_inches, screen_refresh_hz, weight_kg, battery_wh, ports',
+      )
       .in('laptop_id', ids)
       .returns<SpecRow[]>();
     const specsByLaptop = new Map((specsData ?? []).map((s) => [s.laptop_id, s] as const));
@@ -119,10 +162,16 @@ export const buscarPortatiles = tool({
           specs: s
             ? {
                 cpu: s.cpu,
+                cpu_cores: s.cpu_cores,
                 ram_gb: s.ram_gb,
                 storage_gb: s.storage_gb,
+                gpu: s.gpu,
+                gpu_vram_gb: s.gpu_vram_gb,
                 screen_inches: s.screen_inches,
+                screen_refresh_hz: s.screen_refresh_hz,
                 weight_kg: s.weight_kg,
+                battery_wh: s.battery_wh,
+                ports: s.ports,
               }
             : null,
         };
