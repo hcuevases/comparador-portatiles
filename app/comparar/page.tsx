@@ -31,11 +31,6 @@ type SpecRow = Pick<
   | 'usage_type'
   | 'product_line'
 >;
-type PriceRow = Pick<
-  Tables<'prices_history'>,
-  'laptop_id' | 'retailer_id' | 'price_eur' | 'observed_at'
->;
-
 const MAX_COMPARE = 4;
 
 type CompararSearchParams = { ids?: string; error?: string; message?: string };
@@ -90,12 +85,10 @@ export default async function CompararPage({
       )
       .in('laptop_id', ids)
       .returns<SpecRow[]>(),
-    supabase
-      .from('prices_history')
-      .select('laptop_id, retailer_id, price_eur, observed_at')
-      .in('laptop_id', ids)
-      .order('observed_at', { ascending: true })
-      .returns<PriceRow[]>(),
+    // Precio actual (último por retailer → mínimo entre retailers) vía la RPC
+    // current_min_prices: única fuente de la definición (antes se replicaba aquí en
+    // TS trayendo todo prices_history). Ver db/migrations/0015_current_min_prices.sql.
+    supabase.rpc('current_min_prices', { p_ids: ids }),
   ]);
 
   if (lapErr) {
@@ -114,21 +107,11 @@ export default async function CompararPage({
   const specsByLaptop = new Map<string, SpecRow>();
   for (const s of specsData ?? []) specsByLaptop.set(s.laptop_id, s);
 
-  // Precio actual: último precio por (laptop, retailer) y luego el mínimo entre
-  // retailers — misma definición que la home (#18) y la ficha. pricesData viene
-  // ordenado asc por observed_at, así que el último que escribimos por
-  // (laptop|retailer) es el vigente.
-  const latestByLaptopRetailer = new Map<string, number>();
-  for (const p of pricesData ?? []) {
-    latestByLaptopRetailer.set(`${p.laptop_id}|${p.retailer_id}`, Number(p.price_eur));
-  }
+  // Precio actual por portátil: lo da la RPC (último por retailer → min entre
+  // retailers). min_price puede ser null si el portátil no tiene precios.
   const minPriceByLaptop = new Map<string, number>();
-  for (const [key, price] of latestByLaptopRetailer) {
-    const laptopId = key.slice(0, key.indexOf('|'));
-    const cur = minPriceByLaptop.get(laptopId);
-    if (cur === undefined || price < cur) {
-      minPriceByLaptop.set(laptopId, price);
-    }
+  for (const r of pricesData ?? []) {
+    if (r.min_price !== null) minPriceByLaptop.set(r.laptop_id, Number(r.min_price));
   }
 
   const rows = buildRows(ordered, specsByLaptop, minPriceByLaptop);
