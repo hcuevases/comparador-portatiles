@@ -19,7 +19,7 @@ export default async function LoginPage({
         <h1 className="text-2xl font-semibold tracking-tight">Iniciar sesión</h1>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
           ¿No tienes cuenta?{' '}
-          <Link href="/signup" className="text-blue-600 underline hover:text-blue-700">
+          <Link href="/signup" className="text-cyan-600 underline hover:text-cyan-700">
             Regístrate
           </Link>
         </p>
@@ -47,7 +47,7 @@ export default async function LoginPage({
             type="email"
             autoComplete="email"
             required
-            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-zinc-700 dark:bg-zinc-900"
           />
         </div>
 
@@ -64,7 +64,7 @@ export default async function LoginPage({
             type="password"
             autoComplete="current-password"
             required
-            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-zinc-700 dark:bg-zinc-900"
           />
         </div>
 
@@ -75,7 +75,7 @@ export default async function LoginPage({
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           <Link
             href="/reset-password"
-            className="text-blue-600 underline hover:text-blue-700"
+            className="text-cyan-600 underline hover:text-cyan-700"
           >
             ¿Olvidaste tu contraseña?
           </Link>

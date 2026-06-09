@@ -40,7 +40,7 @@ export function CompareBar() {
           {canCompare ? (
             <Link
               href={compareUrl}
-              className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="inline-flex items-center rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700"
             >
               Comparar →
             </Link>

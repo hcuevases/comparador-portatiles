@@ -55,7 +55,7 @@ export default async function CuentaPage({
         <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
           <Link
             href="/cuenta/password"
-            className="text-sm text-blue-600 underline hover:text-blue-700"
+            className="text-sm text-cyan-600 underline hover:text-cyan-700"
           >
             Cambiar contraseña
           </Link>

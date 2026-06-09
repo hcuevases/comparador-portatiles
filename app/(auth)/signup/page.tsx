@@ -19,7 +19,7 @@ export default async function SignupPage({
         <h1 className="text-2xl font-semibold tracking-tight">Crear cuenta</h1>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
           ¿Ya tienes cuenta?{' '}
-          <Link href="/login" className="text-blue-600 underline hover:text-blue-700">
+          <Link href="/login" className="text-cyan-600 underline hover:text-cyan-700">
             Inicia sesión
           </Link>
         </p>
@@ -42,7 +42,7 @@ export default async function SignupPage({
             type="email"
             autoComplete="email"
             required
-            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-zinc-700 dark:bg-zinc-900"
           />
         </div>
 
@@ -60,7 +60,7 @@ export default async function SignupPage({
             autoComplete="new-password"
             minLength={6}
             required
-            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-zinc-700 dark:bg-zinc-900"
           />
           <p className="mt-1 text-xs text-zinc-500">Mínimo 6 caracteres.</p>
         </div>

@@ -21,7 +21,7 @@ export function AddToCompareButton({ laptopId }: { laptopId: string }) {
         className={
           'inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ' +
           (selected
-            ? 'border-blue-500 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900'
+            ? 'border-cyan-500 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 dark:bg-cyan-950 dark:text-cyan-300 dark:hover:bg-cyan-900'
             : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900') +
           (disabled ? ' cursor-not-allowed opacity-50' : '')
         }

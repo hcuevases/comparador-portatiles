@@ -164,7 +164,7 @@ export function LaptopFilters({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Marca o modelo (ej: ThinkPad, MacBook)"
-            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-zinc-700 dark:bg-zinc-900"
           />
         </div>
 
@@ -180,7 +180,7 @@ export function LaptopFilters({
             value={priceMax}
             onChange={(e) => setPriceMax(e.target.value)}
             placeholder="Sin límite"
-            className="mt-1 block w-32 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+            className="mt-1 block w-32 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-zinc-700 dark:bg-zinc-900"
           />
         </div>
 
@@ -210,7 +210,7 @@ export function LaptopFilters({
                 className={
                   'rounded-full border px-3 py-1 text-xs transition-colors ' +
                   (active
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                     : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
                 }
               >
@@ -231,7 +231,7 @@ export function LaptopFilters({
             id="filter-line"
             value={currentLine}
             onChange={(e) => setLine(e.target.value || null)}
-            className="block w-full max-w-xs rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+            className="block w-full max-w-xs rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-zinc-700 dark:bg-zinc-900"
           >
             <option value="">Todas las series</option>
             {productLines.map(({ value, count }) => (
@@ -254,7 +254,7 @@ export function LaptopFilters({
             className={
               'rounded-full border px-3 py-1 text-xs transition-colors ' +
               (currentRamMin === 0
-                ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                 : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
             }
           >
@@ -271,7 +271,7 @@ export function LaptopFilters({
                 className={
                   'rounded-full border px-3 py-1 text-xs transition-colors ' +
                   (active
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                     : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
                 }
               >
@@ -293,7 +293,7 @@ export function LaptopFilters({
             className={
               'rounded-full border px-3 py-1 text-xs transition-colors ' +
               (currentScreen === ''
-                ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                 : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
             }
           >
@@ -310,7 +310,7 @@ export function LaptopFilters({
                 className={
                   'rounded-full border px-3 py-1 text-xs transition-colors ' +
                   (active
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                     : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
                 }
               >
@@ -332,7 +332,7 @@ export function LaptopFilters({
             className={
               'rounded-full border px-3 py-1 text-xs transition-colors ' +
               (currentCond === ''
-                ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                 : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
             }
           >
@@ -349,7 +349,7 @@ export function LaptopFilters({
                 className={
                   'rounded-full border px-3 py-1 text-xs transition-colors ' +
                   (active
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                     : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
                 }
               >
@@ -375,7 +375,7 @@ export function LaptopFilters({
                 className={
                   'rounded-full border px-3 py-1 text-xs transition-colors ' +
                   (active
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                     : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
                 }
               >

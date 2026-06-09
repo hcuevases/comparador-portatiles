@@ -62,7 +62,7 @@ export function CookieBanner() {
           recordar tu selección. No usamos analítica ni publicidad.{' '}
           <Link
             href="/privacidad"
-            className="font-medium text-blue-600 underline hover:text-blue-700"
+            className="font-medium text-cyan-600 underline hover:text-cyan-700"
           >
             Más información
           </Link>
@@ -71,7 +71,7 @@ export function CookieBanner() {
         <button
           type="button"
           onClick={accept}
-          className="shrink-0 self-start rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 sm:self-auto"
+          className="shrink-0 self-start rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700 sm:self-auto"
         >
           Aceptar
         </button>
