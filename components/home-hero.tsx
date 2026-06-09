@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
 
 const EJEMPLOS = [
   'gaming por menos de 1500€',
@@ -9,9 +9,34 @@ const EJEMPLOS = [
   'barato para estudiar con buena batería',
 ];
 
+const DEBOUNCE_MS = 300;
+
+// Único buscador del sitio: filtra el catálogo en vivo (?q=) por marca/modelo Y, con
+// "✨ Recomiéndame", lleva la consulta al asistente IA (que entiende lenguaje natural).
 export function HomeHero() {
   const router = useRouter();
-  const [q, setQ] = useState('');
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
+  const [q, setQ] = useState(searchParams.get('q') ?? '');
+
+  // Debounce del filtro en vivo hacia la URL (igual patrón que los filtros).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (q !== (searchParams.get('q') ?? '')) {
+        const params = new URLSearchParams(searchParams.toString());
+        if (q) params.set('q', q);
+        else params.delete('q');
+        params.delete('page');
+        const next = params.toString();
+        startTransition(() => {
+          router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+        });
+      }
+    }, DEBOUNCE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
 
   function ask(text?: string) {
     const t = (text ?? q).trim();
@@ -19,8 +44,7 @@ export function HomeHero() {
   }
 
   return (
-    <section className="hero-mesh hero-grain relative mb-8 overflow-hidden rounded-3xl border border-white/10 px-6 py-12 text-white sm:px-10 sm:py-16">
-      {/* halo superior */}
+    <section className="hero-mesh hero-grain relative mb-6 overflow-hidden rounded-3xl border border-white/10 px-6 py-12 text-white sm:px-10 sm:py-14">
       <div
         aria-hidden
         className="pointer-events-none absolute -top-24 left-1/2 h-48 w-[36rem] -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl"
@@ -48,11 +72,11 @@ export function HomeHero() {
           className="animate-rise mx-auto mt-5 max-w-xl text-base text-zinc-300 sm:text-lg"
           style={{ animationDelay: '160ms' }}
         >
-          Descríbelo en una frase y te recomiendo modelos reales del catálogo, con su precio
-          actual y enlace a la ficha.
+          Busca por marca o modelo y filtra al instante, o describe lo que necesitas y deja
+          que la IA te lo recomiende.
         </p>
 
-        {/* Buscador IA */}
+        {/* Buscador único: filtra en vivo + lanza la IA */}
         <div
           className="animate-rise mx-auto mt-7 flex max-w-xl flex-col gap-2 sm:flex-row"
           style={{ animationDelay: '240ms' }}
@@ -67,8 +91,8 @@ export function HomeHero() {
                 ask();
               }
             }}
-            placeholder="Dime qué buscas…"
-            aria-label="Describe el portátil que buscas"
+            placeholder="ThinkPad… o dime qué buscas"
+            aria-label="Busca un portátil o describe lo que necesitas"
             className="min-w-0 flex-1 rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-zinc-400 backdrop-blur focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
           />
           <button
@@ -80,7 +104,6 @@ export function HomeHero() {
           </button>
         </div>
 
-        {/* Ejemplos rápidos */}
         <div
           className="animate-rise mt-4 flex flex-wrap justify-center gap-2"
           style={{ animationDelay: '320ms' }}

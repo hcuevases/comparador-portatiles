@@ -46,9 +46,8 @@ export function LaptopFilters({
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
-  // Estado local solo para los inputs editables (debounced hacia la URL).
-  // Los pills (brand, ram_min) se leen directamente de searchParams.
-  const [q, setQ] = useState(searchParams.get('q') ?? '');
+  // El buscador de texto (?q=) vive ahora en el hero de la home (HomeHero), que es el
+  // ÚNICO buscador del sitio (filtra en vivo + lanza la IA). Aquí solo el precio.
   const [priceMax, setPriceMax] = useState(searchParams.get('price_max') ?? '');
 
   // Empuja un único par key/value al URL. Declarado antes de los useEffect que lo usan.
@@ -65,19 +64,8 @@ export function LaptopFilters({
     });
   }
 
-  // Debounce: cada cambio en `q` o `priceMax` se compromete al URL tras 300 ms sin tecla.
-  // Solo empujamos si el valor local DIFIERE del de la URL. Sin esta guarda, el
-  // efecto dispara al montar el componente (al volver a la home desde otra ruta)
-  // y, como `pushParam` borra `page`, te saca de la página en la que estabas.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (q !== (searchParams.get('q') ?? '')) pushParam('q', q || null);
-    }, DEBOUNCE_MS);
-    return () => clearTimeout(t);
-    // pushParam es estable a nivel de render; el resto de deps lo capta el React Compiler.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-
+  // Debounce del precio hacia la URL (300 ms). Solo empuja si difiere de la URL, para
+  // no resetear la página al montar.
   useEffect(() => {
     const t = setTimeout(() => {
       if (priceMax !== (searchParams.get('price_max') ?? '')) {
@@ -123,7 +111,6 @@ export function LaptopFilters({
   }
 
   function clearAll() {
-    setQ('');
     setPriceMax('');
     startTransition(() => {
       router.replace(pathname, { scroll: false });
@@ -138,7 +125,7 @@ export function LaptopFilters({
   const currentCond = searchParams.get('cond') ?? '';
   const anyFeature = FEATURE_PILLS.some((f) => searchParams.get(f.key) === '1');
   const anyActive =
-    q !== '' ||
+    (searchParams.get('q') ?? '') !== '' ||
     selectedBrands.size > 0 ||
     currentRamMin > 0 ||
     currentScreen !== '' ||
@@ -150,24 +137,10 @@ export function LaptopFilters({
   return (
     <section
       aria-label="Filtros de portátiles"
-      className="mb-6 space-y-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+      className="mb-6 space-y-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
     >
       {/* Búsqueda + precio + limpiar en una fila */}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-0 flex-1">
-          <label htmlFor="filter-q" className="block text-xs font-medium text-zinc-500">
-            Buscar
-          </label>
-          <input
-            id="filter-q"
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Marca o modelo (ej: ThinkPad, MacBook)"
-            className="mt-1 block w-full rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </div>
-
         <div>
           <label htmlFor="filter-price" className="block text-xs font-medium text-zinc-500">
             Precio máx. (€)
