@@ -175,7 +175,7 @@ async function extractTable(page: Page, url: string): Promise<ExtractResult> {
         );
         return has ? 'ok' : false;
       },
-      { timeout: 30000 },
+      { timeout: 12000 },
     )
     .then((h) => h.jsonValue() as Promise<string>)
     .catch(() => null);
@@ -218,19 +218,26 @@ async function loadTargets(): Promise<LaptopRow[]> {
       .returns<LaptopRow[]>();
     return data ?? [];
   }
-  // Portátiles cuya specs aún no tiene los 6 campos (al menos cpu_cores null).
-  // Excluimos los refurbished: su ficha da 404 casi siempre (agotados), así que no
-  // se pueden enriquecer desde su propia página y solo gastan peticiones. Medido:
-  // 461 de 462 de los 404 de una tanda eran -refurbished. Quedan en null; si se
-  // quisieran cubrir, se copiarían del modelo "normal" equivalente (otra tarea).
+  // Fichas aún NO intentadas (enriched_at null). Cada ficha se visita una vez: tras
+  // procesarla se marca enriched_at, tenga datos, sea 404 o no se parsee — así no se
+  // re-procesa en la siguiente tanda (ver migración 0019).
+  // Excluimos refurbished: su ficha da 404 casi siempre (agotados), así que solo
+  // gastan peticiones. Medido: 461 de 462 de los 404 de una tanda eran -refurbished.
   const { data } = await supabase
     .from('specs')
     .select('laptop_id, laptops!inner(id, slug, refurbished)')
-    .is('cpu_cores', null)
+    .is('enriched_at', null)
     .eq('laptops.refurbished', false)
     .limit(LIMIT)
     .returns<{ laptops: LaptopRow }[]>();
   return (data ?? []).map((r) => r.laptops);
+}
+
+async function markAttempted(laptopId: string): Promise<void> {
+  await supabase
+    .from('specs')
+    .update({ enriched_at: new Date().toISOString() })
+    .eq('laptop_id', laptopId);
 }
 
 function hasAny(p: Parsed): boolean {
@@ -269,9 +276,12 @@ async function main(): Promise<void> {
     const tag = `[${i + 1}/${targets.length}] ${laptop.slug}`;
     try {
       const res = await extractTable(page, url);
+      // wall/error: NO se marca enriched_at (transitorio) → se reintenta otra tanda.
+      // 404 y sin-parsear SÍ se marcan → no se vuelven a visitar.
       if (res.kind === '404') {
         notFound++;
         console.log(`${tag} → 404 (slug obsoleto)`);
+        if (!DRY_RUN) await markAttempted(laptop.id);
       } else if (res.kind === 'wall') {
         walled++;
         console.log(`${tag} → ⚠️ muro Cloudflare`);
@@ -294,12 +304,14 @@ async function main(): Promise<void> {
                 weight_kg: parsed.weight_kg,
                 battery_wh: parsed.battery_wh,
                 ports: parsed.ports,
+                enriched_at: new Date().toISOString(),
               })
               .eq('laptop_id', laptop.id);
             if (error) console.log(`   ✗ update: ${error.message}`);
           }
         } else {
           noData++;
+          if (!DRY_RUN) await markAttempted(laptop.id);
         }
       }
     } catch (e) {
