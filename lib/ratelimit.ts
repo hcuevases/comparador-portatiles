@@ -2,11 +2,13 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
 // Rate-limit por IP para el chat IA (cada mensaje cuesta dinero). Upstash Redis
-// serverless (aprobado en el stack). Si las env no están configuradas todavía
-// (dev / sin aprovisionar), NO limita: el chat funciona pero sin protección.
-// Para activarlo: UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN.
-const url = process.env.UPSTASH_REDIS_REST_URL;
-const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+// serverless. Si las env no están configuradas todavía (dev / sin aprovisionar), NO
+// limita: el chat funciona pero sin protección.
+//
+// Acepta los dos nombres habituales: los nativos de Upstash (UPSTASH_REDIS_REST_*) y
+// los que pone la integración de Vercel Marketplace (KV_REST_API_*).
+const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
 
 const limiter =
   url && token
