@@ -35,12 +35,18 @@ type SearchParams = {
   oled?: string;
   refurbished?: string;
   screen?: string;
+  line?: string;
   sort?: string;
   page?: string;
   message?: string;
 };
 
 const PAGE_SIZE = 24;
+
+// Umbral mínimo de unidades para que una serie (`product_line`) aparezca en el
+// <select>. Descarta la cola de series con 1-2 modelos, donde se concentran los
+// mislabels del scraper (portátiles cuya `product_line` no cuadra con su marca).
+const MIN_LINE_COUNT = 10;
 
 // Buckets de tamaño de pantalla. `screen_inches` es discreto/aproximado (13, 14,
 // 16, 17; el 16 agrupa el rango 15-16 de Algolia), así que filtramos por rango.
@@ -69,6 +75,7 @@ export default async function Home({
   const oled = params.oled === '1';
   const refurbished = params.refurbished === '1';
   const screenBucket = SCREEN_BUCKETS[params.screen ?? ''];
+  const line = (params.line ?? '').trim();
   const message = params.message;
   const page = Math.max(1, Number(params.page) || 1);
 
@@ -95,6 +102,19 @@ export default async function Home({
 
   const allBrands = (brandRows ?? []).map((r) => r.brand);
 
+  // 1b) Series (product_line) distintas para el <select> del filtro. Mismo motivo
+  //     que las marcas: vía RPC para esquivar el límite de 1000 filas de PostgREST.
+  //     Filtramos por MIN_LINE_COUNT para no listar la cola de series con 1-2
+  //     unidades (ruido/mislabels), pero la serie ya seleccionada se incluye
+  //     siempre aunque esté por debajo del umbral, para no romper el <select>.
+  const { data: lineRows } = await supabase
+    .rpc('distinct_product_lines')
+    .returns<{ product_line: string; n: number }[]>();
+
+  const productLines = (lineRows ?? [])
+    .filter((r) => r.n >= MIN_LINE_COUNT || r.product_line === line)
+    .map((r) => ({ value: r.product_line, count: r.n }));
+
   // 2) Búsqueda + filtros (texto/marca/specs/precio) + paginación + count en una
   //    sola RPC server-side. El filtro de precio máximo va en el WHERE de la
   //    función, así que el total es EXACTO (antes era client-side y el count
@@ -113,6 +133,7 @@ export default async function Home({
       p_refurbished: refurbished,
       p_screen_min: screenBucket?.min,
       p_screen_max: screenBucket?.max ?? undefined,
+      p_product_line: line || undefined,
       p_sort: params.sort || undefined,
       p_limit: PAGE_SIZE,
       p_offset: offset,
@@ -149,6 +170,7 @@ export default async function Home({
     laptops,
     specsByLaptop,
     allBrands,
+    productLines,
     totalCount,
     page,
     totalPages,
@@ -162,6 +184,7 @@ function renderPage(
   laptops: SearchRow[],
   specsByLaptop: Map<string, SpecRow>,
   allBrands: string[],
+  productLines: { value: string; count: number }[],
   totalCount: number,
   currentPage: number,
   totalPages: number,
@@ -195,7 +218,7 @@ function renderPage(
         </div>
       )}
 
-      <LaptopFilters brands={allBrands} />
+      <LaptopFilters brands={allBrands} productLines={productLines} />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-zinc-500">
