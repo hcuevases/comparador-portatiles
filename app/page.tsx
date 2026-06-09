@@ -130,7 +130,9 @@ export default async function Home({
       p_gaming: gaming,
       p_ai: ai,
       p_oled: oled,
-      p_refurbished: refurbished,
+      // p_refurbished es tri-estado (0020): null=todos, true=solo reacond, false=solo
+      // nuevos. El pill solo filtra cuando está ON; OFF = undefined = todos.
+      p_refurbished: refurbished || undefined,
       p_screen_min: screenBucket?.min,
       p_screen_max: screenBucket?.max ?? undefined,
       p_product_line: line || undefined,

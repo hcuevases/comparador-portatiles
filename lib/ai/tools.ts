@@ -60,7 +60,12 @@ export const buscarPortatiles = tool({
     gaming: z.boolean().optional().describe('Solo portátiles gaming.'),
     ai: z.boolean().optional().describe('Solo optimizados para IA.'),
     oled: z.boolean().optional().describe('Solo pantalla OLED/AMOLED.'),
-    refurbished: z.boolean().optional().describe('Solo reacondicionados.'),
+    refurbished: z
+      .boolean()
+      .optional()
+      .describe(
+        'Filtro de reacondicionado: true = SOLO reacondicionados; false = SOLO nuevos (excluye reacondicionados); omitir = ambos. Si el usuario pide un portátil "nuevo" o "sin estrenar", usa false.',
+      ),
     screen_min: z.number().optional().describe('Pulgadas mínimas de pantalla.'),
     screen_max: z.number().optional().describe('Pulgadas máximas (ej: 14 para algo ligero/pequeño).'),
     sort: z.enum(['price_asc', 'price_desc']).optional().describe('Ordenar por precio.'),
@@ -77,7 +82,8 @@ export const buscarPortatiles = tool({
         p_gaming: args.gaming ?? false,
         p_ai: args.ai ?? false,
         p_oled: args.oled ?? false,
-        p_refurbished: args.refurbished ?? false,
+        // tri-estado: undefined → todos, true → solo reacond, false → solo nuevos.
+        p_refurbished: args.refurbished,
         p_screen_min: args.screen_min,
         p_screen_max: args.screen_max,
         p_sort: args.sort,
