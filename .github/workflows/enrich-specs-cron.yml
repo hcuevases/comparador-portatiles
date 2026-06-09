@@ -1,0 +1,49 @@
+# Enriquece las 6 specs que Algolia no expone (cpu_cores, gpu_vram_gb,
+# screen_refresh_hz, weight_kg, battery_wh, ports) leyendo la ficha HTML de
+# PcComponentes con Playwright. Ver ADR-003.
+#
+# ⚠️ SOLO MANUAL (workflow_dispatch), NO programado. Motivo: la ficha está tras
+# Cloudflare. Headless pasa el reto desde una IP residencial (verificado en local),
+# pero Cloudflare suele bloquear más las IPs de datacenter de GitHub Actions. Hay que
+# CONFIRMAR que pasa desde aquí antes de añadir un `schedule`. Si se topa con muros
+# ("muro Cloudflare" en el log), correr en local o usar un unblocker gestionado.
+#
+# Procesa de forma incremental: el script coge los que aún tienen cpu_cores null,
+# hasta `limit`. Lánzalo varias veces (o sube el limit) para cubrir el catálogo.
+name: Enriquecer specs (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Cuántas fichas procesar en este run'
+        required: false
+        default: '300'
+
+concurrency:
+  group: enrich-specs
+  cancel-in-progress: false
+
+jobs:
+  enrich:
+    name: Enriquecer specs desde la ficha
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # Descarga Chromium + libs del sistema necesarias en Ubuntu.
+      - run: npx playwright install --with-deps chromium
+
+      - name: Enriquecer specs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npm run enrich:specs -- --limit ${{ github.event.inputs.limit }}

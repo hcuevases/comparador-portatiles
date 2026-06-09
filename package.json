@@ -11,7 +11,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:types": "npx --yes supabase gen types typescript --project-id uhnbfyjapxbmifyeacly --schema public > lib/supabase/database.types.ts",
-    "scrape:catalog": "tsx scripts/scrape-catalog.ts"
+    "scrape:catalog": "tsx scripts/scrape-catalog.ts",
+    "enrich:specs": "tsx scripts/enrich-specs.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
