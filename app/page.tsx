@@ -33,7 +33,7 @@ type SearchParams = {
   gaming?: string;
   ai?: string;
   oled?: string;
-  refurbished?: string;
+  cond?: string;
   screen?: string;
   line?: string;
   sort?: string;
@@ -73,7 +73,9 @@ export default async function Home({
   const gaming = params.gaming === '1';
   const ai = params.ai === '1';
   const oled = params.oled === '1';
-  const refurbished = params.refurbished === '1';
+  // Estado del producto (tri-estado, ?cond=): undefined=todos, false=solo nuevos,
+  // true=solo reacondicionados. Mapea a p_refurbished de search_laptops (0020).
+  const refurbished = params.cond === 'nuevos' ? false : params.cond === 'reacond' ? true : undefined;
   const screenBucket = SCREEN_BUCKETS[params.screen ?? ''];
   const line = (params.line ?? '').trim();
   const message = params.message;
@@ -130,9 +132,8 @@ export default async function Home({
       p_gaming: gaming,
       p_ai: ai,
       p_oled: oled,
-      // p_refurbished es tri-estado (0020): null=todos, true=solo reacond, false=solo
-      // nuevos. El pill solo filtra cuando está ON; OFF = undefined = todos.
-      p_refurbished: refurbished || undefined,
+      // tri-estado (0020): undefined=todos, false=solo nuevos, true=solo reacond.
+      p_refurbished: refurbished,
       p_screen_min: screenBucket?.min,
       p_screen_max: screenBucket?.max ?? undefined,
       p_product_line: line || undefined,
