@@ -34,6 +34,14 @@ body {
   font-family: var(--font-display), system-ui, sans-serif;
 }
 
+/* Propaga la fuente display a todos los titulares principales del sitio. */
+@layer base {
+  h1,
+  h2 {
+    font-family: var(--font-display), system-ui, sans-serif;
+  }
+}
+
 /* ── Hero oscuro: malla de gradientes + grano sutil ───────────────────────── */
 .hero-mesh {
   background-color: #07070b;

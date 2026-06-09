@@ -68,7 +68,7 @@ export async function NavBar() {
               </Link>
               <Link
                 href="/signup"
-                className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                className="rounded-md bg-cyan-600 px-3 py-1 text-xs font-medium text-white hover:bg-cyan-700"
               >
                 Crear cuenta
               </Link>

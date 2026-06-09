@@ -92,7 +92,7 @@ function PaginationLink({
 }) {
   const base = 'inline-flex min-w-9 items-center justify-center rounded-md border px-3 py-1.5';
   const styles = active
-    ? 'border-blue-500 bg-blue-50 font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+    ? 'border-cyan-500 bg-cyan-50 font-medium text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
     : disabled
       ? 'cursor-not-allowed border-zinc-200 text-zinc-300 dark:border-zinc-800 dark:text-zinc-700'
       : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900';

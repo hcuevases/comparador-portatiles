@@ -140,7 +140,7 @@ export default async function CompararPage({
                 type="text"
                 maxLength={100}
                 placeholder="ej: ultrabooks 14 pulgadas"
-                className="mt-1 block w-64 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+                className="mt-1 block w-64 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-zinc-700 dark:bg-zinc-900"
               />
             </div>
             <SubmitButton pendingText="Guardando…">Guardar comparativa</SubmitButton>
@@ -214,7 +214,7 @@ export default async function CompararPage({
                       key={i}
                       className={
                         'px-3 py-2 align-top ' +
-                        (distinct ? 'text-blue-700 dark:text-blue-300' : 'text-zinc-800 dark:text-zinc-200')
+                        (distinct ? 'text-cyan-700 dark:text-cyan-300' : 'text-zinc-800 dark:text-zinc-200')
                       }
                     >
                       {value === null || value === undefined || value === '' ? (

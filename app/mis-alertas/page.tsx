@@ -84,7 +84,7 @@ export default async function MisAlertasPage({
           </p>
           <Link
             href="/"
-            className="mt-3 inline-block text-sm text-blue-600 underline hover:text-blue-700"
+            className="mt-3 inline-block text-sm text-cyan-600 underline hover:text-cyan-700"
           >
             Ir al catálogo
           </Link>

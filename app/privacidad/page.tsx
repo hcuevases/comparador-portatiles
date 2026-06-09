@@ -86,7 +86,7 @@ export default function PrivacidadPage() {
           <p>
             Conservamos los datos de tu cuenta y tus comparativas <strong>mientras la cuenta esté
             activa</strong>. Puedes <strong>borrar tu cuenta</strong> en cualquier momento desde{' '}
-            <Link href="/cuenta" className="text-blue-600 underline hover:text-blue-700">
+            <Link href="/cuenta" className="text-cyan-600 underline hover:text-cyan-700">
               tu cuenta
             </Link>
             ; el borrado elimina de forma inmediata tu usuario y, en cascada, tus comparativas
@@ -104,7 +104,7 @@ export default function PrivacidadPage() {
               href="https://www.aepd.es"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 underline hover:text-blue-700"
+              className="text-cyan-600 underline hover:text-cyan-700"
             >
               aepd.es
             </a>

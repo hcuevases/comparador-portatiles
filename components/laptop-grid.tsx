@@ -49,7 +49,7 @@ export function LaptopGrid({
               className={
                 'relative rounded-lg border bg-white shadow-sm transition-colors dark:bg-zinc-950 ' +
                 (selected
-                  ? 'border-blue-500 ring-2 ring-blue-500/20'
+                  ? 'border-cyan-500 ring-2 ring-cyan-500/20'
                   : 'border-zinc-200 dark:border-zinc-800')
               }
             >
@@ -58,14 +58,14 @@ export function LaptopGrid({
                 className={
                   'absolute right-3 top-3 z-10 flex shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-md border px-2 py-1 text-xs ' +
                   (selected
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                     : 'border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900') +
                   (disabled ? ' cursor-not-allowed opacity-50' : '')
                 }
               >
                 <input
                   type="checkbox"
-                  className="h-3 w-3 accent-blue-600"
+                  className="h-3 w-3 accent-cyan-600"
                   checked={selected}
                   onChange={() => toggle(l.id)}
                   disabled={disabled}

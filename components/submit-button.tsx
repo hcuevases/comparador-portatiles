@@ -21,7 +21,7 @@ export function SubmitButton({
 
   const styles =
     variant === 'primary'
-      ? 'bg-blue-600 text-white hover:bg-blue-700'
+      ? 'bg-cyan-600 text-white hover:bg-cyan-700'
       : variant === 'danger'
         ? 'bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2'
         : 'border border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900';

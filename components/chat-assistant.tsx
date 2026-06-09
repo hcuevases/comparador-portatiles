@@ -127,7 +127,7 @@ export function ChatAssistant({ initialQuery }: { initialQuery?: string }) {
         {messages.map((m) => (
           <li key={m.id}>
             {m.role === 'user' ? (
-              <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-blue-600 px-4 py-2 text-sm text-white">
+              <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-cyan-600 px-4 py-2 text-sm text-white">
                 {m.parts.map((p, i) => (p.type === 'text' ? <span key={i}>{p.text}</span> : null))}
               </div>
             ) : (
@@ -191,12 +191,12 @@ export function ChatAssistant({ initialQuery }: { initialQuery?: string }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ej: portátil ligero para trabajar, menos de 1000€"
-          className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+          className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 dark:border-zinc-700 dark:bg-zinc-900"
         />
         <button
           type="submit"
           disabled={busy || input.trim() === ''}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Enviar
         </button>
