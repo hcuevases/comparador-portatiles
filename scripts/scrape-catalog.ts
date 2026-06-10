@@ -365,8 +365,10 @@ function mapHit(hit: AlgoliaHit): LaptopDetail | null {
     description,
     imageUrl,
     refurbished,
-    ean: asString(hit.ean),
-    mpn: asString(hit.mpn) ?? asString(hit.partNumber),
+    // `|| null`: algunos hits traen EAN/MPN como cadena vacía; la normalizamos a null
+    // para que no choque con el índice único parcial (ean, refurbished).
+    ean: asString(hit.ean) || null,
+    mpn: (asString(hit.mpn) ?? asString(hit.partNumber)) || null,
     specs: {
       cpu: cpuRaw,
       cpu_cores: asNumber(attr('nucleos', 'núcleos', 'cores')),
