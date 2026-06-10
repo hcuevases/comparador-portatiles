@@ -121,7 +121,7 @@ export default async function CompararPage({
   );
 
   return (
-    <main className="mx-auto max-w-6xl p-8">
+    <main className="mx-auto max-w-6xl p-4 sm:p-8">
       <BackHome />
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -174,33 +174,36 @@ export default async function CompararPage({
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-zinc-200 dark:border-zinc-800">
-              <th className="sticky left-0 z-10 w-40 border-r border-zinc-200 bg-white py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
+              <th className="sticky left-0 z-10 w-40 border-r border-zinc-200 bg-white px-4 py-3 text-left align-bottom text-xs font-medium uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
                 Atributo
               </th>
               {ordered.map((l) => (
-                <th key={l.id} className="min-w-36 px-3 py-3 text-left align-bottom">
-                  <Link
-                    href={`/portatiles/${l.slug}`}
-                    className="block hover:opacity-80"
-                  >
-                    {l.image_url && (
-                      <div className="relative mb-2 h-16 w-16 overflow-hidden rounded bg-zinc-50 dark:bg-zinc-900">
+                <th key={l.id} className="min-w-40 border-l border-zinc-100 px-3 py-4 text-left align-bottom dark:border-zinc-900">
+                  <Link href={`/portatiles/${l.slug}`} className="group block">
+                    <div className="relative mb-2.5 flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl border border-zinc-100 bg-[radial-gradient(120%_120%_at_50%_0%,var(--color-zinc-100),var(--color-white))] dark:border-zinc-800 dark:bg-[radial-gradient(120%_120%_at_50%_0%,var(--color-zinc-800),var(--color-zinc-950))]">
+                      {l.image_url ? (
                         <Image
                           src={pccThumb(l.image_url, 300)}
                           alt={`${l.brand} ${l.model}`}
                           fill
-                          sizes="64px"
-                          className="object-contain p-1"
+                          sizes="80px"
+                          className="object-contain p-2 transition-transform duration-300 group-hover:scale-105"
                         />
-                      </div>
-                    )}
-                    <p className="text-xs text-zinc-500">{l.brand}</p>
-                    <p className="font-medium leading-tight">{l.model}</p>
-                    {l.year && <p className="text-xs text-zinc-500">{l.year}</p>}
+                      ) : (
+                        <span className="text-[10px] text-zinc-400">Sin imagen</span>
+                      )}
+                    </div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-cyan-700 dark:text-cyan-400">
+                      {l.brand}
+                    </p>
+                    <p className="font-display font-bold leading-tight transition-colors group-hover:text-cyan-700 dark:group-hover:text-cyan-300">
+                      {l.model}
+                    </p>
+                    {l.year && <p className="mt-0.5 text-xs text-zinc-500">{l.year}</p>}
                   </Link>
                 </th>
               ))}
@@ -215,7 +218,7 @@ export default async function CompararPage({
                   key={row.label}
                   className="border-b border-zinc-100 last:border-0 odd:bg-zinc-50/60 dark:border-zinc-900 dark:odd:bg-zinc-900/40"
                 >
-                  <th className="sticky left-0 z-10 border-r border-zinc-200 bg-white py-2.5 pr-3 text-left text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
+                  <th className="sticky left-0 z-10 border-r border-zinc-200 bg-white px-4 py-2.5 text-left text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
                     {row.label}
                   </th>
                   {row.cells.map((cell, i) => {
@@ -224,11 +227,11 @@ export default async function CompararPage({
                       <td
                         key={i}
                         className={
-                          'px-3 py-2.5 align-top ' +
+                          'border-l border-zinc-100 px-3 py-2.5 align-top dark:border-zinc-900 ' +
                           (won
                             ? 'bg-cyan-50 font-semibold text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-200'
                             : 'text-zinc-800 dark:text-zinc-200') +
-                          (isPrice ? ' text-base' : '')
+                          (isPrice ? ' text-base font-semibold' : '')
                         }
                       >
                         {isEmpty(cell.value) ? (

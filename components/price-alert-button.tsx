@@ -61,10 +61,10 @@ export function PriceAlertButton({ laptopId }: { laptopId: string }) {
   }
 
   const baseClass =
-    'inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors';
+    'inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors';
 
   return (
-    <div className="mt-3">
+    <div>
       {status === 'loading' && (
         <span className={`${baseClass} border-zinc-200 text-zinc-400 dark:border-zinc-800`}>
           🔔 Avísame si baja de precio

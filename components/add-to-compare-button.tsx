@@ -12,7 +12,7 @@ export function AddToCompareButton({ laptop }: { laptop: CompareItem }) {
   const disabled = !selected && isFull;
 
   return (
-    <div className="mt-4">
+    <div>
       <button
         type="button"
         onClick={() => toggle(laptop)}

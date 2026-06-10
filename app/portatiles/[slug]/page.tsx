@@ -214,60 +214,73 @@ export default async function LaptopDetailPage({
   }, null);
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
+    <main className="mx-auto max-w-5xl p-4 sm:p-8">
       <nav className="mb-6 text-sm">
         <Suspense fallback={<BackToCatalogFallback />}>
           <BackToCatalog />
         </Suspense>
       </nav>
 
-      <header className="mb-8 grid gap-6 sm:grid-cols-[auto_1fr] sm:items-start">
+      <header className="mb-10 grid gap-6 sm:grid-cols-[auto_1fr] sm:items-start sm:gap-8">
         {laptop.image_url && (
-          <div className="relative h-56 w-56 shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="relative h-60 w-60 shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-[radial-gradient(120%_120%_at_50%_0%,var(--color-zinc-100),var(--color-white))] shadow-md shadow-zinc-900/5 dark:border-zinc-800 dark:bg-[radial-gradient(120%_120%_at_50%_0%,var(--color-zinc-800),var(--color-zinc-950))]">
             <Image
               src={laptop.image_url}
               alt={`${laptop.brand} ${laptop.model}`}
               fill
-              sizes="224px"
-              className="object-contain p-2"
+              sizes="240px"
+              className="object-contain p-6 drop-shadow-lg"
               priority
             />
           </div>
         )}
         <div>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">{laptop.brand}</p>
-          <h1 className="text-3xl font-semibold tracking-tight">{laptop.model}</h1>
-          {laptop.year && (
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{laptop.year}</p>
-          )}
-          {laptop.slug.endsWith('-refurbished') && (
-            <span className="mt-2 inline-block rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-              Reacondicionado
-            </span>
-          )}
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-cyan-700 dark:text-cyan-400">
+            {laptop.brand}
+          </p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">{laptop.model}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {laptop.year && (
+              <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+                {laptop.year}
+              </span>
+            )}
+            {laptop.slug.endsWith('-refurbished') && (
+              <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                Reacondicionado
+              </span>
+            )}
+          </div>
           {laptop.description && (
             <p className="mt-4 max-w-2xl text-zinc-700 dark:text-zinc-300">
               {laptop.description}
             </p>
           )}
           {minPrice !== null && (
-            <p className="mt-4 text-lg font-medium">Desde {formatEur(minPrice)}</p>
+            <div className="mt-5 flex items-baseline gap-2">
+              <span className="text-sm text-zinc-500">Desde</span>
+              <span className="font-display text-3xl font-extrabold tracking-tight">
+                {formatEur(minPrice)}
+              </span>
+            </div>
           )}
-          <AddToCompareButton
-            laptop={{
-              id: laptop.id,
-              brand: laptop.brand,
-              model: laptop.model,
-              image_url: laptop.image_url,
-            }}
-          />
-          <PriceAlertButton laptopId={laptop.id} />
+          <div className="mt-4 flex flex-wrap items-start gap-3">
+            <AddToCompareButton
+              laptop={{
+                id: laptop.id,
+                brand: laptop.brand,
+                model: laptop.model,
+                image_url: laptop.image_url,
+              }}
+            />
+            <PriceAlertButton laptopId={laptop.id} />
+          </div>
         </div>
       </header>
 
       {retailerCards.length > 0 && (
         <section className="mb-10">
-          <h2 className="mb-3 text-lg font-medium">Disponible en</h2>
+          <h2 className="mb-3 text-xl font-bold tracking-tight">Disponible en</h2>
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {retailerCards.map(({ retailer, link, latest }) => {
               const isCheapest = minPrice !== null && latest.price_eur === minPrice;
@@ -275,27 +288,27 @@ export default async function LaptopDetailPage({
               <li
                 key={retailer.id}
                 className={
-                  'flex items-center justify-between rounded-lg border bg-white p-4 dark:bg-zinc-950 ' +
+                  'flex items-center justify-between gap-3 rounded-xl border bg-white p-4 transition-all hover:shadow-md dark:bg-zinc-950 ' +
                   (isCheapest
-                    ? 'border-cyan-500 ring-1 ring-cyan-500/30'
-                    : 'border-zinc-200 dark:border-zinc-800')
+                    ? 'border-cyan-500 shadow-sm shadow-cyan-500/20 ring-1 ring-cyan-500/30'
+                    : 'border-zinc-200 shadow-sm dark:border-zinc-800')
                 }
               >
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-medium">{retailer.name}</p>
+                    <p className="truncate font-medium">{retailer.name}</p>
                     {isCheapest && (
-                      <span className="rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                      <span className="shrink-0 rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
                         Mejor precio
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
-                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  <p className="mt-1 flex items-baseline gap-2">
+                    <span className="font-display text-xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
                       {formatEur(latest.price_eur)}
-                    </span>{' '}
+                    </span>
                     <span className="text-xs text-zinc-400">
-                      · actualizado {formatDayShort(latest.observed_at.slice(0, 10))}
+                      · {formatDayShort(latest.observed_at.slice(0, 10))}
                     </span>
                   </p>
                 </div>
@@ -304,12 +317,12 @@ export default async function LaptopDetailPage({
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer sponsored"
-                    className="inline-flex items-center rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-700"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-cyan-700"
                   >
-                    Ir a {retailer.name} →
+                    Ver oferta <span aria-hidden>→</span>
                   </a>
                 ) : (
-                  <span className="text-xs text-zinc-400">Sin enlace afiliado</span>
+                  <span className="shrink-0 text-xs text-zinc-400">Sin enlace afiliado</span>
                 )}
               </li>
               );
@@ -320,8 +333,8 @@ export default async function LaptopDetailPage({
 
       {chartData.length > 0 && series.length > 0 && (
         <section className="mb-10">
-          <h2 className="mb-3 text-lg font-medium">Histórico de precios (90 días)</h2>
-          <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="mb-3 text-xl font-bold tracking-tight">Histórico de precios (90 días)</h2>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
             <PriceHistoryChart data={chartData} series={series} />
           </div>
           <p className="mt-2 text-xs text-zinc-500">
@@ -406,7 +419,7 @@ function SpecsSection({ specs }: { specs: Specs }) {
         {groups.map((group) => (
           <div
             key={group.title}
-            className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
+            className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
           >
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-400">
               {group.title}
