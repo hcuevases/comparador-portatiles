@@ -253,7 +253,14 @@ export default async function LaptopDetailPage({
           {minPrice !== null && (
             <p className="mt-4 text-lg font-medium">Desde {formatEur(minPrice)}</p>
           )}
-          <AddToCompareButton laptopId={laptop.id} />
+          <AddToCompareButton
+            laptop={{
+              id: laptop.id,
+              brand: laptop.brand,
+              model: laptop.model,
+              image_url: laptop.image_url,
+            }}
+          />
           <PriceAlertButton laptopId={laptop.id} />
         </div>
       </header>
@@ -262,15 +269,31 @@ export default async function LaptopDetailPage({
         <section className="mb-10">
           <h2 className="mb-3 text-lg font-medium">Disponible en</h2>
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {retailerCards.map(({ retailer, link, latest }) => (
+            {retailerCards.map(({ retailer, link, latest }) => {
+              const isCheapest = minPrice !== null && latest.price_eur === minPrice;
+              return (
               <li
                 key={retailer.id}
-                className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+                className={
+                  'flex items-center justify-between rounded-lg border bg-white p-4 dark:bg-zinc-950 ' +
+                  (isCheapest
+                    ? 'border-cyan-500 ring-1 ring-cyan-500/30'
+                    : 'border-zinc-200 dark:border-zinc-800')
+                }
               >
                 <div>
-                  <p className="font-medium">{retailer.name}</p>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    {formatEur(latest.price_eur)}{' '}
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{retailer.name}</p>
+                    {isCheapest && (
+                      <span className="rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                        Mejor precio
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      {formatEur(latest.price_eur)}
+                    </span>{' '}
                     <span className="text-xs text-zinc-400">
                       · actualizado {formatDayShort(latest.observed_at.slice(0, 10))}
                     </span>
@@ -289,7 +312,8 @@ export default async function LaptopDetailPage({
                   <span className="text-xs text-zinc-400">Sin enlace afiliado</span>
                 )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         </section>
       )}
@@ -307,59 +331,95 @@ export default async function LaptopDetailPage({
         </section>
       )}
 
-      {specs && (
-        <section>
-          <h2 className="mb-3 text-lg font-medium">Especificaciones</h2>
-          <dl className="grid grid-cols-1 gap-x-8 gap-y-2 rounded-lg border border-zinc-200 bg-white p-6 sm:grid-cols-[max-content_1fr] dark:border-zinc-800 dark:bg-zinc-950">
-            <SpecRow label="CPU" value={specs.cpu} />
-            <SpecRow
-              label="Núcleos"
-              value={specs.cpu_cores ? `${specs.cpu_cores} núcleos` : null}
-            />
-            <SpecRow label="RAM" value={specs.ram_gb ? `${specs.ram_gb} GB` : null} />
-            <SpecRow
-              label="Almacenamiento"
-              value={
-                specs.storage_gb
-                  ? `${specs.storage_gb} GB${specs.storage_type ? ` (${specs.storage_type})` : ''}`
-                  : null
-              }
-            />
-            <SpecRow label="GPU" value={specs.gpu} />
-            <SpecRow
-              label="VRAM"
-              value={specs.gpu_vram_gb ? `${specs.gpu_vram_gb} GB` : null}
-            />
-            <SpecRow
-              label="Pantalla"
-              value={
-                specs.screen_inches
-                  ? `${specs.screen_inches}″${specs.screen_resolution ? ` · ${specs.screen_resolution}` : ''}${specs.screen_refresh_hz ? ` · ${specs.screen_refresh_hz} Hz` : ''}`
-                  : null
-              }
-            />
-            <SpecRow label="Tipo de panel" value={specs.screen_panel_type} />
-            <SpecRow label="Peso" value={specs.weight_kg ? `${specs.weight_kg} kg` : null} />
-            <SpecRow
-              label="Batería"
-              value={specs.battery_wh ? `${specs.battery_wh} Wh` : null}
-            />
-            <SpecRow
-              label="Puertos"
-              value={specs.ports && specs.ports.length > 0 ? specs.ports.join(', ') : null}
-            />
-            <SpecRow label="Sistema" value={specs.os} />
-            <SpecRow label="Tipo de uso" value={specs.usage_type} />
-            <SpecRow label="Gama" value={specs.product_line} />
-            <SpecRow label="Idioma del teclado" value={specs.keyboard_lang} />
-            <SpecRow
-              label="Optimizado para IA"
-              value={specs.ai_optimized === true ? 'Sí' : null}
-            />
-          </dl>
-        </section>
-      )}
+      {specs && <SpecsSection specs={specs} />}
     </main>
+  );
+}
+
+// Specs agrupadas por bloque temático para que la ficha se lea de un vistazo en
+// vez de como un listado plano de 16 filas. Los grupos sin ningún valor (y las
+// filas null dentro de cada grupo) no se renderizan.
+function SpecsSection({ specs }: { specs: Specs }) {
+  const groups: { title: string; rows: { label: string; value: string | null }[] }[] = [
+    {
+      title: 'Rendimiento',
+      rows: [
+        { label: 'CPU', value: specs.cpu },
+        { label: 'Núcleos', value: specs.cpu_cores ? `${specs.cpu_cores} núcleos` : null },
+        { label: 'RAM', value: specs.ram_gb ? `${specs.ram_gb} GB` : null },
+        {
+          label: 'Almacenamiento',
+          value: specs.storage_gb
+            ? `${specs.storage_gb} GB${specs.storage_type ? ` (${specs.storage_type})` : ''}`
+            : null,
+        },
+        { label: 'GPU', value: specs.gpu },
+        { label: 'VRAM', value: specs.gpu_vram_gb ? `${specs.gpu_vram_gb} GB` : null },
+      ],
+    },
+    {
+      title: 'Pantalla',
+      rows: [
+        {
+          label: 'Pantalla',
+          value: specs.screen_inches
+            ? `${specs.screen_inches}″${specs.screen_resolution ? ` · ${specs.screen_resolution}` : ''}${specs.screen_refresh_hz ? ` · ${specs.screen_refresh_hz} Hz` : ''}`
+            : null,
+        },
+        { label: 'Tipo de panel', value: specs.screen_panel_type },
+      ],
+    },
+    {
+      title: 'Diseño y batería',
+      rows: [
+        { label: 'Peso', value: specs.weight_kg ? `${specs.weight_kg} kg` : null },
+        { label: 'Batería', value: specs.battery_wh ? `${specs.battery_wh} Wh` : null },
+      ],
+    },
+    {
+      title: 'Conectividad',
+      rows: [
+        {
+          label: 'Puertos',
+          value: specs.ports && specs.ports.length > 0 ? specs.ports.join(', ') : null,
+        },
+      ],
+    },
+    {
+      title: 'Software y extras',
+      rows: [
+        { label: 'Sistema', value: specs.os },
+        { label: 'Tipo de uso', value: specs.usage_type },
+        { label: 'Gama', value: specs.product_line },
+        { label: 'Idioma del teclado', value: specs.keyboard_lang },
+        { label: 'Optimizado para IA', value: specs.ai_optimized === true ? 'Sí' : null },
+      ],
+    },
+  ]
+    .map((g) => ({ ...g, rows: g.rows.filter((r) => r.value !== null) }))
+    .filter((g) => g.rows.length > 0);
+
+  return (
+    <section>
+      <h2 className="mb-3 text-lg font-medium">Especificaciones</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {groups.map((group) => (
+          <div
+            key={group.title}
+            className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950"
+          >
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-400">
+              {group.title}
+            </h3>
+            <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2">
+              {group.rows.map((r) => (
+                <SpecRow key={r.label} label={r.label} value={r.value} />
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

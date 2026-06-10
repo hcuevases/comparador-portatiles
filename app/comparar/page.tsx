@@ -114,7 +114,11 @@ export default async function CompararPage({
     if (r.min_price !== null) minPriceByLaptop.set(r.laptop_id, Number(r.min_price));
   }
 
-  const rows = buildRows(ordered, specsByLaptop, minPriceByLaptop);
+  // Solo filas con al menos un valor: sin datos en ningún portátil, la fila no
+  // aporta y añade ruido a la tabla.
+  const rows = buildRows(ordered, specsByLaptop, minPriceByLaptop).filter((row) =>
+    row.cells.some((c) => !isEmpty(c.value)),
+  );
 
   return (
     <main className="mx-auto max-w-6xl p-8">
@@ -122,8 +126,12 @@ export default async function CompararPage({
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Comparativa</h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            {ordered.length} portátiles · diferencias resaltadas en azul.
+          <p className="mt-2 flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
+            {ordered.length} portátiles ·
+            <span className="inline-flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-sm bg-cyan-500/80" />
+              mejor valor resaltado
+            </span>
           </p>
         </div>
 
@@ -200,36 +208,50 @@ export default async function CompararPage({
           </thead>
           <tbody>
             {rows.map((row) => {
-              const distinct = new Set(row.values.map((v) => normalize(v))).size > 1;
+              const winners = winnersOf(row);
+              const isPrice = row.label === 'Precio desde';
               return (
                 <tr
                   key={row.label}
-                  className="border-b border-zinc-100 last:border-0 dark:border-zinc-900"
+                  className="border-b border-zinc-100 last:border-0 odd:bg-zinc-50/60 dark:border-zinc-900 dark:odd:bg-zinc-900/40"
                 >
-                  <th className="sticky left-0 z-10 border-r border-zinc-200 bg-white py-2 pr-3 text-left text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
+                  <th className="sticky left-0 z-10 border-r border-zinc-200 bg-white py-2.5 pr-3 text-left text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
                     {row.label}
                   </th>
-                  {row.values.map((value, i) => (
-                    <td
-                      key={i}
-                      className={
-                        'px-3 py-2 align-top ' +
-                        (distinct ? 'text-cyan-700 dark:text-cyan-300' : 'text-zinc-800 dark:text-zinc-200')
-                      }
-                    >
-                      {value === null || value === undefined || value === '' ? (
-                        <span className="text-zinc-400">—</span>
-                      ) : Array.isArray(value) ? (
-                        <ul className="space-y-0.5">
-                          {value.map((v, j) => (
-                            <li key={j}>{v}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        String(value)
-                      )}
-                    </td>
-                  ))}
+                  {row.cells.map((cell, i) => {
+                    const won = winners.has(i);
+                    return (
+                      <td
+                        key={i}
+                        className={
+                          'px-3 py-2.5 align-top ' +
+                          (won
+                            ? 'bg-cyan-50 font-semibold text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-200'
+                            : 'text-zinc-800 dark:text-zinc-200') +
+                          (isPrice ? ' text-base' : '')
+                        }
+                      >
+                        {isEmpty(cell.value) ? (
+                          <span className="text-zinc-400">—</span>
+                        ) : Array.isArray(cell.value) ? (
+                          <ul className="space-y-0.5">
+                            {cell.value.map((v, j) => (
+                              <li key={j}>{v}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5">
+                            {String(cell.value)}
+                            {won && (
+                              <span className="rounded-full bg-cyan-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide text-white">
+                                mejor
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}
@@ -240,7 +262,12 @@ export default async function CompararPage({
   );
 }
 
-type Row = { label: string; values: Array<string | number | string[] | null> };
+type CellValue = string | string[] | null;
+// `rank`: número comparable para decidir el "mejor" de la fila. `better` indica
+// si gana el mayor o el menor. Las filas de texto puro llevan rank null/better
+// null y no resaltan ganador.
+type Cell = { value: CellValue; rank: number | null };
+type Row = { label: string; cells: Cell[]; better: 'higher' | 'lower' | null };
 
 function buildRows(
   laptops: LaptopRow[],
@@ -250,86 +277,91 @@ function buildRows(
   const get = <K extends keyof SpecRow>(id: string, key: K): SpecRow[K] | null =>
     specs.get(id)?.[key] ?? null;
 
+  // Fila de texto: sin ranking.
+  const text = (label: string, fn: (id: string) => CellValue): Row => ({
+    label,
+    better: null,
+    cells: laptops.map((l) => ({ value: fn(l.id), rank: null })),
+  });
+
+  // Fila numérica: display + valor comparable + dirección del "mejor".
+  const num = (
+    label: string,
+    better: 'higher' | 'lower',
+    fn: (id: string) => { value: CellValue; rank: number | null },
+  ): Row => ({ label, better, cells: laptops.map((l) => fn(l.id)) });
+
   return [
-    {
-      label: 'Precio desde',
-      values: laptops.map((l) => {
-        const p = prices.get(l.id);
-        return p === undefined ? null : formatEur(p);
-      }),
-    },
-    { label: 'CPU', values: laptops.map((l) => get(l.id, 'cpu')) },
-    {
-      label: 'Núcleos',
-      values: laptops.map((l) => {
-        const v = get(l.id, 'cpu_cores');
-        return v === null ? null : `${v}`;
-      }),
-    },
-    {
-      label: 'RAM',
-      values: laptops.map((l) => {
-        const v = get(l.id, 'ram_gb');
-        return v === null ? null : `${v} GB`;
-      }),
-    },
-    {
-      label: 'Almacenamiento',
-      values: laptops.map((l) => {
-        const gb = get(l.id, 'storage_gb');
-        const type = get(l.id, 'storage_type');
-        if (gb === null) return null;
-        return type ? `${gb} GB ${type}` : `${gb} GB`;
-      }),
-    },
-    {
-      label: 'GPU',
-      values: laptops.map((l) => {
-        const gpu = get(l.id, 'gpu');
-        const vram = get(l.id, 'gpu_vram_gb');
-        if (!gpu) return null;
-        return vram ? `${gpu} (${vram} GB)` : gpu;
-      }),
-    },
-    {
-      label: 'Pantalla',
-      values: laptops.map((l) => {
-        const size = get(l.id, 'screen_inches');
-        const res = get(l.id, 'screen_resolution');
-        const hz = get(l.id, 'screen_refresh_hz');
-        if (size === null) return null;
-        const parts = [`${size}″`];
-        if (res) parts.push(res);
-        if (hz) parts.push(`${hz} Hz`);
-        return parts.join(' · ');
-      }),
-    },
-    { label: 'Tipo de panel', values: laptops.map((l) => get(l.id, 'screen_panel_type')) },
-    {
-      label: 'Peso',
-      values: laptops.map((l) => {
-        const v = get(l.id, 'weight_kg');
-        return v === null ? null : `${v} kg`;
-      }),
-    },
-    {
-      label: 'Batería',
-      values: laptops.map((l) => {
-        const v = get(l.id, 'battery_wh');
-        return v === null ? null : `${v} Wh`;
-      }),
-    },
-    { label: 'Puertos', values: laptops.map((l) => get(l.id, 'ports')) },
-    { label: 'SO', values: laptops.map((l) => get(l.id, 'os')) },
-    { label: 'Tipo de uso', values: laptops.map((l) => get(l.id, 'usage_type')) },
-    { label: 'Gama', values: laptops.map((l) => get(l.id, 'product_line')) },
+    num('Precio desde', 'lower', (id) => {
+      const p = prices.get(id);
+      return { value: p === undefined ? null : formatEur(p), rank: p ?? null };
+    }),
+    text('CPU', (id) => get(id, 'cpu')),
+    num('Núcleos', 'higher', (id) => {
+      const v = get(id, 'cpu_cores');
+      return { value: v === null ? null : `${v}`, rank: v };
+    }),
+    num('RAM', 'higher', (id) => {
+      const v = get(id, 'ram_gb');
+      return { value: v === null ? null : `${v} GB`, rank: v };
+    }),
+    num('Almacenamiento', 'higher', (id) => {
+      const gb = get(id, 'storage_gb');
+      const type = get(id, 'storage_type');
+      if (gb === null) return { value: null, rank: null };
+      return { value: type ? `${gb} GB ${type}` : `${gb} GB`, rank: gb };
+    }),
+    text('GPU', (id) => {
+      const gpu = get(id, 'gpu');
+      const vram = get(id, 'gpu_vram_gb');
+      if (!gpu) return null;
+      return vram ? `${gpu} (${vram} GB)` : gpu;
+    }),
+    text('Pantalla', (id) => {
+      const size = get(id, 'screen_inches');
+      const res = get(id, 'screen_resolution');
+      const hz = get(id, 'screen_refresh_hz');
+      if (size === null) return null;
+      const parts = [`${size}″`];
+      if (res) parts.push(res);
+      if (hz) parts.push(`${hz} Hz`);
+      return parts.join(' · ');
+    }),
+    text('Tipo de panel', (id) => get(id, 'screen_panel_type')),
+    num('Peso', 'lower', (id) => {
+      const v = get(id, 'weight_kg');
+      return { value: v === null ? null : `${v} kg`, rank: v };
+    }),
+    num('Batería', 'higher', (id) => {
+      const v = get(id, 'battery_wh');
+      return { value: v === null ? null : `${v} Wh`, rank: v };
+    }),
+    text('Puertos', (id) => get(id, 'ports')),
+    text('SO', (id) => get(id, 'os')),
+    text('Tipo de uso', (id) => get(id, 'usage_type')),
+    text('Gama', (id) => get(id, 'product_line')),
   ];
 }
 
-function normalize(v: string | number | string[] | null | undefined): string {
-  if (v === null || v === undefined) return '';
-  if (Array.isArray(v)) return v.join('|');
-  return String(v);
+// Índices de las celdas ganadoras de una fila. Solo hay ganador si la fila es
+// rankeable, tiene ≥2 valores y existe diferencia real (si todas empatan, no se
+// resalta nada). Los empates en el mejor valor se marcan todos.
+function winnersOf(row: Row): Set<number> {
+  if (row.better === null) return new Set();
+  const ranked = row.cells
+    .map((c, i) => ({ rank: c.rank, i }))
+    .filter((c): c is { rank: number; i: number } => c.rank !== null);
+  if (ranked.length < 2) return new Set();
+  const ranks = ranked.map((c) => c.rank);
+  if (new Set(ranks).size === 1) return new Set();
+  const best = row.better === 'higher' ? Math.max(...ranks) : Math.min(...ranks);
+  return new Set(ranked.filter((c) => c.rank === best).map((c) => c.i));
+}
+
+function isEmpty(value: CellValue): boolean {
+  if (value === null || value === undefined || value === '') return true;
+  if (Array.isArray(value)) return value.length === 0;
+  return false;
 }
 
 function formatEur(value: number): string {
