@@ -24,6 +24,26 @@ Laptop) lo comparten cientos de portátiles → se scrapea una vez y se reutiliz
   overrides (enfoque A; alternativas denormalizada y al-vuelo descartadas).
 - **Dónde se muestra:** ficha + comparativa.
 
+## Realidad de los datos (hallazgo en implementación, 2026-06-10)
+
+Suposición inicial del diseño: `specs.cpu`/`specs.gpu` contenían el modelo concreto.
+**Falso.** Lo que hay realmente:
+
+- `specs.cpu` = **familia** de Algolia (`Intel Core Ultra 7`, `AMD Ryzen 7`…), nunca
+  el modelo (`i7-1355U`). Inservible para casar con nanoreview (una familia tiene
+  muchos modelos con rendimientos distintos).
+- El **modelo concreto SÍ aparece en `laptops.model`** (el nombre) en ~**73%** de los
+  casos: `i7-13620H`, `Core Ultra 7 255H`, `Ryzen AI 7 350`, `Snapdragon X Elite`…
+- `specs.gpu` SÍ trae el modelo dedicado cuando existe (`GeForce RTX 5060`,
+  `Radeon RX 7600S`); el ~68% es `Gráfica Integrada` (sin GPU dedicada → sin benchmark
+  dedicado, esperable).
+
+**Consecuencia para el diseño:** la fuente del modelo de CPU es `laptops.model`
+(parseado por regex), con `specs.cpu` como pista de marca/familia. La GPU se toma de
+`specs.gpu` (si no es integrada) con `laptops.model` como respaldo. Cobertura parcial
+asumida (~70% CPU; GPU sobre todo en portátiles con gráfica dedicada). Sin paso previo
+de scraping para el modelo — se extrae de datos que ya tenemos.
+
 ## No-objetivos (YAGNI, este ciclo)
 
 - Que el score alimente el asistente IA o los filtros de la home.
@@ -105,40 +125,43 @@ corregir casos sueltos sin tocar código.
 Lectura pública en las tres tablas nuevas (`select` para `anon`/`authenticated`),
 como el resto de tablas de catálogo. Escritura solo service role (el enricher).
 
-## Normalizador (función pura — `lib/benchmarks/normalize.ts`)
+## Extracción + normalización (función pura — `lib/benchmarks/normalize.ts`)
 
-El corazón testeable. Contrato:
+El corazón testeable. **Extrae el modelo del NOMBRE del portátil** (no de `specs.cpu`,
+que es la familia) y lo normaliza a clave. Contrato:
 
 ```ts
-export function normalizeCpuKey(raw: string): string | null;
-export function normalizeGpuKey(raw: string): string | null;
+// Recibe el nombre del portátil (laptops.model) y, como pista, specs.cpu (familia).
+export function extractCpuKey(laptopName: string, cpuFamily: string | null): string | null;
+// Recibe specs.gpu (modelo dedicado si lo hay) con laptops.model como respaldo.
+export function extractGpuKey(gpuRaw: string | null, laptopName: string): string | null;
 ```
 
-**CPU** — quita marca (`Intel`/`AMD`/`Apple`) y marketing (`Processor`, `CPU`,
-`with Radeon Graphics`, sufijos de RAM…), extrae el modelo y lo *slugifica*:
+**CPU** — busca en el nombre patrones de modelo (`i[3579]-NNNNN`, `Core Ultra [579]
+NNN[letra]`, `Ryzen [AI ][3579] NNNN`, `Snapdragon X …`, `M[1-5] [Pro/Max]`), quita
+marketing y *slugifica*. `null` si el nombre no trae modelo (≈27%).
 
-| entrada                              | salida              |
+| nombre del portátil (extracto)                         | salida                |
+|--------------------------------------------------------|-----------------------|
+| `…Intel Core i7-13620H/32GB/1TB SSD/RTX 4060…`         | `core-i7-13620h`      |
+| `…Intel Core Ultra 7 255H 32GB 1TB SSD…`               | `core-ultra-7-255h`   |
+| `…AMD Ryzen AI 7 350 32GB Radeon 860M…`                | `ryzen-ai-7-350`      |
+| `…Snapdragon X Elite 13" 16GB…`                        | `snapdragon-x-elite`  |
+| `…ThinkPad … Intel Core i5 16GB…` (sin modelo)         | `null`                |
+
+**GPU** — de `specs.gpu` si no es integrada; quita marca (`NVIDIA`/`GeForce`/`Radeon`),
+y para GPU de portátil añade `-laptop` (nanoreview separa portátil de sobremesa):
+
+| entrada (`specs.gpu`)                | salida              |
 |--------------------------------------|---------------------|
-| `Intel Core i7-1355U`                | `core-i7-1355u`     |
-| `Intel Core Ultra 7 155H`            | `core-ultra-7-155h` |
-| `AMD Ryzen 7 7840HS`                 | `ryzen-7-7840hs`    |
-| `Apple M3 Pro`                       | `m3-pro`            |
-| (texto sin modelo reconocible)       | `null`              |
-
-**GPU** — quita marca (`NVIDIA`/`AMD`/`Intel`/`GeForce`/`Radeon`), normaliza y, para
-GPU de portátil, añade `-laptop` (nanoreview separa portátil de sobremesa):
-
-| entrada                              | salida              |
-|--------------------------------------|---------------------|
-| `NVIDIA GeForce RTX 4060`            | `rtx-4060-laptop`   |
+| `GeForce RTX 5060`                   | `rtx-5060-laptop`   |
 | `AMD Radeon RX 7600S`                | `radeon-rx-7600s`   |
-| `Intel Arc A370M`                    | `arc-a370m`         |
-| `Intel Iris Xe Graphics` (integrada) | `iris-xe` (se intenta) |
-| (desconocida)                        | `null`              |
+| `Gráfica Integrada`                  | `null` (sin dedicada)|
+| `RTX 2000` (workstation)             | `rtx-2000-laptop`   |
 
 Las correspondencias exactas slug↔nanoreview se afinan con casos reales del catálogo
-durante la implementación (se extraen los `distinct specs.cpu/gpu` y se construye la
-tabla de tests). Los que no casen → `benchmark_overrides`.
+durante la implementación (los `distinct` se extraen de la BD y se construye la tabla
+de tests). Los que no casen → `benchmark_overrides`.
 
 ## Scraper (`scripts/enrich-benchmarks.ts`, `npm run enrich:benchmarks`)
 
@@ -149,9 +172,11 @@ cada N páginas, `--limit`, `--dry-run`, `--delay`.
 
 Flujo:
 
-1. **Rellenar claves:** leer `distinct specs.cpu` y `distinct specs.gpu`; para cada
-   valor, `normalizeCpuKey/GpuKey`; `update specs set cpu_key/gpu_key` en las filas
-   con ese valor. (Las filas con clave `null` quedan sin benchmark.)
+1. **Rellenar claves:** leer `laptops.model` + `specs.cpu`/`specs.gpu` por portátil;
+   `extractCpuKey(model, cpuFamily)` y `extractGpuKey(gpu, model)`; `update specs set
+   cpu_key/gpu_key`. (Las filas con clave `null` quedan sin benchmark — ≈27% CPU y los
+   de gráfica integrada.) Este paso es **puro/local** (no toca nanoreview), así que se
+   puede correr aunque el scraping de benchmarks falle.
 2. **Scrapear componentes nuevos:** claves distintas que aún no tienen fila en
    `cpu_benchmarks`/`gpu_benchmarks`, hasta `--limit`. Para cada una:
    - resolver `nanoreview_slug`: `benchmark_overrides` → si no, construir
