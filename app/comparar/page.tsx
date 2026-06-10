@@ -30,7 +30,11 @@ type SpecRow = Pick<
   | 'os'
   | 'usage_type'
   | 'product_line'
+  | 'cpu_key'
+  | 'gpu_key'
 >;
+type CpuBench = Pick<Tables<'cpu_benchmarks'>, 'component_key' | 'score' | 'geekbench_multi'>;
+type GpuBench = Pick<Tables<'gpu_benchmarks'>, 'component_key' | 'score' | 'g3dmark'>;
 const MAX_COMPARE = 4;
 
 type CompararSearchParams = { ids?: string; error?: string; message?: string };
@@ -81,7 +85,7 @@ export default async function CompararPage({
     supabase
       .from('specs')
       .select(
-        'laptop_id, cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, screen_panel_type, weight_kg, battery_wh, ports, os, usage_type, product_line',
+        'laptop_id, cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, screen_panel_type, weight_kg, battery_wh, ports, os, usage_type, product_line, cpu_key, gpu_key',
       )
       .in('laptop_id', ids)
       .returns<SpecRow[]>(),
@@ -114,10 +118,38 @@ export default async function CompararPage({
     if (r.min_price !== null) minPriceByLaptop.set(r.laptop_id, Number(r.min_price));
   }
 
+  // Benchmarks por componente (nanoreview), join por specs.cpu_key/gpu_key.
+  const cpuKeys = [
+    ...new Set((specsData ?? []).map((s) => s.cpu_key).filter((k): k is string => Boolean(k))),
+  ];
+  const gpuKeys = [
+    ...new Set((specsData ?? []).map((s) => s.gpu_key).filter((k): k is string => Boolean(k))),
+  ];
+  const [{ data: cpuB }, { data: gpuB }] = await Promise.all([
+    cpuKeys.length
+      ? supabase
+          .from('cpu_benchmarks')
+          .select('component_key, score, geekbench_multi')
+          .in('component_key', cpuKeys)
+          .eq('status', 'ok')
+          .returns<CpuBench[]>()
+      : Promise.resolve({ data: [] as CpuBench[] }),
+    gpuKeys.length
+      ? supabase
+          .from('gpu_benchmarks')
+          .select('component_key, score, g3dmark')
+          .in('component_key', gpuKeys)
+          .eq('status', 'ok')
+          .returns<GpuBench[]>()
+      : Promise.resolve({ data: [] as GpuBench[] }),
+  ]);
+  const cpuByKey = new Map((cpuB ?? []).map((b) => [b.component_key, b] as const));
+  const gpuByKey = new Map((gpuB ?? []).map((b) => [b.component_key, b] as const));
+
   // Solo filas con al menos un valor: sin datos en ningún portátil, la fila no
   // aporta y añade ruido a la tabla.
-  const rows = buildRows(ordered, specsByLaptop, minPriceByLaptop).filter((row) =>
-    row.cells.some((c) => !isEmpty(c.value)),
+  const rows = buildRows(ordered, specsByLaptop, minPriceByLaptop, cpuByKey, gpuByKey).filter(
+    (row) => row.cells.some((c) => !isEmpty(c.value)),
   );
 
   return (
@@ -276,9 +308,22 @@ function buildRows(
   laptops: LaptopRow[],
   specs: Map<string, SpecRow>,
   prices: Map<string, number>,
+  cpuByKey: Map<string, CpuBench>,
+  gpuByKey: Map<string, GpuBench>,
 ): Row[] {
   const get = <K extends keyof SpecRow>(id: string, key: K): SpecRow[K] | null =>
     specs.get(id)?.[key] ?? null;
+
+  const cpuBench = <K extends keyof CpuBench>(id: string, field: K): number | null => {
+    const key = specs.get(id)?.cpu_key;
+    const v = key ? cpuByKey.get(key)?.[field] : null;
+    return typeof v === 'number' ? v : null;
+  };
+  const gpuBench = <K extends keyof GpuBench>(id: string, field: K): number | null => {
+    const key = specs.get(id)?.gpu_key;
+    const v = key ? gpuByKey.get(key)?.[field] : null;
+    return typeof v === 'number' ? v : null;
+  };
 
   // Fila de texto: sin ranking.
   const text = (label: string, fn: (id: string) => CellValue): Row => ({
@@ -304,6 +349,14 @@ function buildRows(
       const v = get(id, 'cpu_cores');
       return { value: v === null ? null : `${v}`, rank: v };
     }),
+    num('Puntuación CPU', 'higher', (id) => {
+      const v = cpuBench(id, 'score');
+      return { value: v === null ? null : `${v}`, rank: v };
+    }),
+    num('Geekbench (multi)', 'higher', (id) => {
+      const v = cpuBench(id, 'geekbench_multi');
+      return { value: v === null ? null : v.toLocaleString('es-ES'), rank: v };
+    }),
     num('RAM', 'higher', (id) => {
       const v = get(id, 'ram_gb');
       return { value: v === null ? null : `${v} GB`, rank: v };
@@ -319,6 +372,14 @@ function buildRows(
       const vram = get(id, 'gpu_vram_gb');
       if (!gpu) return null;
       return vram ? `${gpu} (${vram} GB)` : gpu;
+    }),
+    num('Puntuación GPU', 'higher', (id) => {
+      const v = gpuBench(id, 'score');
+      return { value: v === null ? null : `${v}`, rank: v };
+    }),
+    num('3DMark', 'higher', (id) => {
+      const v = gpuBench(id, 'g3dmark');
+      return { value: v === null ? null : v.toLocaleString('es-ES'), rank: v };
     }),
     text('Pantalla', (id) => {
       const size = get(id, 'screen_inches');
