@@ -354,10 +354,15 @@ export type Database = {
           ports: string[] | null
           product_line: string | null
           ram_gb: number | null
+          screen_brightness_nits: number | null
+          screen_color_gamut: string | null
+          screen_hdr: string | null
           screen_inches: number | null
           screen_panel_type: string | null
           screen_refresh_hz: number | null
           screen_resolution: string | null
+          screen_response_ms: number | null
+          screen_touch: boolean | null
           storage_gb: number | null
           storage_type: string | null
           updated_at: string
@@ -380,10 +385,15 @@ export type Database = {
           ports?: string[] | null
           product_line?: string | null
           ram_gb?: number | null
+          screen_brightness_nits?: number | null
+          screen_color_gamut?: string | null
+          screen_hdr?: string | null
           screen_inches?: number | null
           screen_panel_type?: string | null
           screen_refresh_hz?: number | null
           screen_resolution?: string | null
+          screen_response_ms?: number | null
+          screen_touch?: boolean | null
           storage_gb?: number | null
           storage_type?: string | null
           updated_at?: string
@@ -406,10 +416,15 @@ export type Database = {
           ports?: string[] | null
           product_line?: string | null
           ram_gb?: number | null
+          screen_brightness_nits?: number | null
+          screen_color_gamut?: string | null
+          screen_hdr?: string | null
           screen_inches?: number | null
           screen_panel_type?: string | null
           screen_refresh_hz?: number | null
           screen_resolution?: string | null
+          screen_response_ms?: number | null
+          screen_touch?: boolean | null
           storage_gb?: number | null
           storage_type?: string | null
           updated_at?: string

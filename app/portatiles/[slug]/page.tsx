@@ -53,6 +53,11 @@ type Specs = Pick<
   | 'product_line'
   | 'cpu_key'
   | 'gpu_key'
+  | 'screen_brightness_nits'
+  | 'screen_touch'
+  | 'screen_color_gamut'
+  | 'screen_hdr'
+  | 'screen_response_ms'
 >;
 type CpuBench = Pick<
   Tables<'cpu_benchmarks'>,
@@ -127,7 +132,7 @@ export default async function LaptopDetailPage({
       supabase
         .from('specs')
         .select(
-          'cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, screen_panel_type, weight_kg, battery_wh, ports, os, usage_type, keyboard_lang, ai_optimized, product_line, cpu_key, gpu_key',
+          'cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, screen_panel_type, weight_kg, battery_wh, ports, os, usage_type, keyboard_lang, ai_optimized, product_line, cpu_key, gpu_key, screen_brightness_nits, screen_touch, screen_color_gamut, screen_hdr, screen_response_ms',
         )
         .eq('laptop_id', laptop.id)
         .maybeSingle<Specs>(),
@@ -500,6 +505,17 @@ function SpecsSection({ specs }: { specs: Specs }) {
             : null,
         },
         { label: 'Tipo de panel', value: specs.screen_panel_type },
+        {
+          label: 'Brillo',
+          value: specs.screen_brightness_nits ? `${specs.screen_brightness_nits} nits` : null,
+        },
+        { label: 'Táctil', value: specs.screen_touch === true ? 'Sí' : null },
+        { label: 'Gama de color', value: specs.screen_color_gamut },
+        { label: 'HDR', value: specs.screen_hdr },
+        {
+          label: 'Tiempo de respuesta',
+          value: specs.screen_response_ms ? `${specs.screen_response_ms} ms` : null,
+        },
       ],
     },
     {

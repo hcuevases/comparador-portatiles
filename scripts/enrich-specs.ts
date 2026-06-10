@@ -13,6 +13,11 @@
  * etiquetas + regex en valores, y asume COBERTURA PARCIAL (muchos productos no listan
  * núcleos o tasa de refresco). Solo escribe los campos que consigue parsear.
  *
+ * Además rellena specs de pantalla ricas (brillo, táctil, gama de color, HDR, tiempo
+ * de respuesta) vía lib/specs/parse-screen.ts. Para BACKFILL en fichas ya enriquecidas
+ * antes de esta feature: `update specs set enriched_at = null;` y re-correr (re-escribe
+ * todo de forma idempotente). OJO: la ficha está tras Cloudflare (intermitente).
+ *
  * Uso (correr en local o en el cron; NUNCA desde un sandbox que bloquee Cloudflare):
  *   npm run enrich:specs -- --limit 5 --dry-run         # prueba sin escribir
  *   npm run enrich:specs -- --limit 50                  # procesa 50 sin specs
@@ -28,6 +33,7 @@ import { createClient } from '@supabase/supabase-js';
 import { config as loadEnv } from 'dotenv';
 import { chromium, type Browser, type Page } from 'playwright';
 
+import { parseScreen, type ScreenFields } from '@/lib/specs/parse-screen';
 import type { Database } from '@/lib/supabase/database.types';
 
 loadEnv({ path: '.env.local' });
@@ -65,7 +71,7 @@ type Parsed = {
   weight_kg: number | null;
   battery_wh: number | null;
   ports: string[] | null;
-};
+} & ScreenFields;
 
 // ─── Parsers (difusos en etiqueta, regex en valor) ──────────────────────────
 
@@ -195,6 +201,7 @@ function parseSpecs(map: Record<string, string>): Parsed {
     weight_kg: parseWeight(map),
     battery_wh: parseBattery(map),
     ports: parsePorts(map),
+    ...parseScreen(map),
   };
 }
 
@@ -315,7 +322,12 @@ function hasAny(p: Parsed): boolean {
     p.screen_refresh_hz != null ||
     p.weight_kg != null ||
     p.battery_wh != null ||
-    (p.ports != null && p.ports.length > 0)
+    (p.ports != null && p.ports.length > 0) ||
+    p.screen_brightness_nits != null ||
+    p.screen_touch != null ||
+    p.screen_color_gamut != null ||
+    p.screen_hdr != null ||
+    p.screen_response_ms != null
   );
 }
 
@@ -380,6 +392,11 @@ async function main(): Promise<void> {
                 weight_kg: parsed.weight_kg,
                 battery_wh: parsed.battery_wh,
                 ports: parsed.ports,
+                screen_brightness_nits: parsed.screen_brightness_nits,
+                screen_touch: parsed.screen_touch,
+                screen_color_gamut: parsed.screen_color_gamut,
+                screen_hdr: parsed.screen_hdr,
+                screen_response_ms: parsed.screen_response_ms,
                 enriched_at: new Date().toISOString(),
               })
               .eq('laptop_id', laptop.id);
