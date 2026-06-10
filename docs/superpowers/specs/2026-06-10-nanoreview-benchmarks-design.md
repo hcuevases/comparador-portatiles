@@ -1,7 +1,9 @@
 # Enriquecer specs con benchmarks de nanoreview — Diseño
 
 **Fecha:** 2026-06-10
-**Estado:** aprobado (brainstorming) — pendiente de plan de implementación
+**Estado:** IMPLEMENTADO Y POBLADO. Parser verificado contra DOM real; benchmarks
+scrapeados (CPU 78% de portátiles, GPU 94% de los con gráfica dedicada). Ver
+`docs/superpowers/plans/2026-06-10-nanoreview-benchmarks.md` y la nota del vault.
 **Sub-proyecto:** (2) de la tanda "más specs + Amazon/dedup". Dedup/Amazon es ciclo aparte.
 
 ## Objetivo
