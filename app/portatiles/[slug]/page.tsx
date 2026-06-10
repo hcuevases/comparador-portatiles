@@ -51,6 +51,16 @@ type Specs = Pick<
   | 'keyboard_lang'
   | 'ai_optimized'
   | 'product_line'
+  | 'cpu_key'
+  | 'gpu_key'
+>;
+type CpuBench = Pick<
+  Tables<'cpu_benchmarks'>,
+  'name' | 'score' | 'geekbench_single' | 'geekbench_multi' | 'cores' | 'threads' | 'tdp_w' | 'release_year'
+>;
+type GpuBench = Pick<
+  Tables<'gpu_benchmarks'>,
+  'name' | 'score' | 'g3dmark' | 'vram_gb' | 'tdp_w'
 >;
 type Retailer = Pick<Tables<'retailers'>, 'id' | 'slug' | 'name'>;
 type AffiliateLink = Pick<Tables<'affiliate_links'>, 'id' | 'retailer_id' | 'url'>;
@@ -117,7 +127,7 @@ export default async function LaptopDetailPage({
       supabase
         .from('specs')
         .select(
-          'cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, screen_panel_type, weight_kg, battery_wh, ports, os, usage_type, keyboard_lang, ai_optimized, product_line',
+          'cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, screen_panel_type, weight_kg, battery_wh, ports, os, usage_type, keyboard_lang, ai_optimized, product_line, cpu_key, gpu_key',
         )
         .eq('laptop_id', laptop.id)
         .maybeSingle<Specs>(),
@@ -140,6 +150,27 @@ export default async function LaptopDetailPage({
         .order('observed_at', { ascending: true })
         .returns<PriceRow[]>(),
     ]);
+
+  // Benchmarks por componente (join por la clave normalizada). Solo si specs trae
+  // clave y el componente ya está scrapeado con datos (status='ok').
+  const [{ data: cpuBench }, { data: gpuBench }] = await Promise.all([
+    specs?.cpu_key
+      ? supabase
+          .from('cpu_benchmarks')
+          .select('name, score, geekbench_single, geekbench_multi, cores, threads, tdp_w, release_year')
+          .eq('component_key', specs.cpu_key)
+          .eq('status', 'ok')
+          .maybeSingle<CpuBench>()
+      : Promise.resolve({ data: null }),
+    specs?.gpu_key
+      ? supabase
+          .from('gpu_benchmarks')
+          .select('name, score, g3dmark, vram_gb, tdp_w')
+          .eq('component_key', specs.gpu_key)
+          .eq('status', 'ok')
+          .maybeSingle<GpuBench>()
+      : Promise.resolve({ data: null }),
+  ]);
 
   const retailerById = new Map<string, Retailer>();
   for (const r of retailers ?? []) retailerById.set(r.id, r);
@@ -344,9 +375,98 @@ export default async function LaptopDetailPage({
         </section>
       )}
 
+      <PerformanceSection cpu={cpuBench} gpu={gpuBench} />
+
       {specs && <SpecsSection specs={specs} />}
     </main>
   );
+}
+
+// Benchmarks de CPU/GPU (nanoreview). Solo se renderiza si hay al menos uno.
+function PerformanceSection({ cpu, gpu }: { cpu: CpuBench | null; gpu: GpuBench | null }) {
+  if (!cpu && !gpu) return null;
+  return (
+    <section className="mb-10">
+      <h2 className="mb-3 text-xl font-bold tracking-tight">Rendimiento</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {cpu && (
+          <BenchCard
+            title="CPU"
+            name={cpu.name}
+            score={cpu.score}
+            rows={[
+              { label: 'Geekbench (single)', value: cpu.geekbench_single },
+              { label: 'Geekbench (multi)', value: cpu.geekbench_multi },
+              { label: 'Núcleos / hilos', value: fmtCoresThreads(cpu.cores, cpu.threads) },
+              { label: 'TDP', value: cpu.tdp_w ? `${cpu.tdp_w} W` : null },
+              { label: 'Año', value: cpu.release_year },
+            ]}
+          />
+        )}
+        {gpu && (
+          <BenchCard
+            title="GPU"
+            name={gpu.name}
+            score={gpu.score}
+            rows={[
+              { label: '3DMark', value: gpu.g3dmark },
+              { label: 'VRAM', value: gpu.vram_gb ? `${gpu.vram_gb} GB` : null },
+              { label: 'TDP', value: gpu.tdp_w ? `${gpu.tdp_w} W` : null },
+            ]}
+          />
+        )}
+      </div>
+      <p className="mt-2 text-xs text-zinc-500">Datos de rendimiento de nanoreview.net.</p>
+    </section>
+  );
+}
+
+function BenchCard({
+  title,
+  name,
+  score,
+  rows,
+}: {
+  title: string;
+  name: string | null;
+  score: number | null;
+  rows: { label: string; value: string | number | null }[];
+}) {
+  const visible = rows.filter((r) => r.value !== null && r.value !== undefined);
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-cyan-700 dark:text-cyan-400">
+            {title}
+          </p>
+          {name && <p className="truncate font-medium">{name}</p>}
+        </div>
+        {score !== null && (
+          <div className="shrink-0 text-right">
+            <span className="font-display text-2xl font-extrabold tracking-tight">{score}</span>
+            <span className="text-xs text-zinc-400">/100</span>
+          </div>
+        )}
+      </div>
+      {visible.length > 0 && (
+        <dl className="mt-3 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1.5">
+          {visible.map((r) => (
+            <div key={r.label} className="contents">
+              <dt className="text-sm text-zinc-500 dark:text-zinc-400">{r.label}</dt>
+              <dd className="text-sm text-zinc-900 dark:text-zinc-100">{r.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
+  );
+}
+
+function fmtCoresThreads(cores: number | null, threads: number | null): string | null {
+  if (cores === null && threads === null) return null;
+  if (cores !== null && threads !== null) return `${cores} / ${threads}`;
+  return `${cores ?? threads}`;
 }
 
 // Specs agrupadas por bloque temático para que la ficha se lea de un vistazo en
