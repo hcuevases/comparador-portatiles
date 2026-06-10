@@ -1,28 +1,28 @@
 'use client';
 
-import { useCompareSelection } from '@/lib/use-compare-selection';
+import { useCompareSelection, type CompareItem } from '@/lib/use-compare-selection';
 
 // Botón de la ficha individual para añadir/quitar el portátil de la selección
-// de comparación. Comparte estado con el grid y la barra flotante vía
+// de comparación. Comparte estado con el grid y la cesta flotante vía
 // useCompareSelection() (localStorage), así que la selección persiste al volver
 // al catálogo.
-export function AddToCompareButton({ laptopId }: { laptopId: string }) {
+export function AddToCompareButton({ laptop }: { laptop: CompareItem }) {
   const { toggle, isSelected, isFull, max } = useCompareSelection();
-  const selected = isSelected(laptopId);
+  const selected = isSelected(laptop.id);
   const disabled = !selected && isFull;
 
   return (
-    <div className="mt-4">
+    <div>
       <button
         type="button"
-        onClick={() => toggle(laptopId)}
+        onClick={() => toggle(laptop)}
         disabled={disabled}
         aria-pressed={selected}
         className={
-          'inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ' +
+          'inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition-all ' +
           (selected
-            ? 'border-cyan-500 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 dark:bg-cyan-950 dark:text-cyan-300 dark:hover:bg-cyan-900'
-            : 'border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900') +
+            ? 'border-cyan-500 bg-cyan-500 text-white shadow-cyan-500/25 hover:bg-cyan-600'
+            : 'border-zinc-300 bg-white text-zinc-700 hover:border-cyan-400 hover:text-cyan-700 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-cyan-500 dark:hover:text-cyan-300') +
           (disabled ? ' cursor-not-allowed opacity-50' : '')
         }
       >

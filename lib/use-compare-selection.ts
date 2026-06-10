@@ -7,26 +7,53 @@ import { useCallback, useSyncExternalStore } from 'react';
 // botón de la ficha, barra flotante global). Usamos un store a nivel de módulo
 // + useSyncExternalStore en lugar de useState para que la selección sobreviva a
 // la navegación entre páginas (Server Components no comparten estado de React).
+//
+// Guardamos el item completo (no solo el id) para que la "cesta" flotante pueda
+// pintar miniatura y nombre sin tener que volver a consultar Supabase.
 
 const STORAGE_KEY = 'compare-selection';
 export const MAX_COMPARE = 4;
 
+export type CompareItem = {
+  id: string;
+  brand: string;
+  model: string;
+  image_url: string | null;
+};
+
 // Referencia estable para el snapshot de servidor (evita bucles de render en
 // useSyncExternalStore, que compara con Object.is).
-const EMPTY: readonly string[] = [];
+const EMPTY: readonly CompareItem[] = [];
 
-let selection: string[] = [];
+let selection: CompareItem[] = [];
 let initialized = false;
 const listeners = new Set<() => void>();
 
-function read(): string[] {
+function read(): CompareItem[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((x): x is string => typeof x === 'string').slice(0, MAX_COMPARE);
+    return parsed
+      .map((x): CompareItem | null => {
+        // Formato nuevo: objeto completo.
+        if (x && typeof x === 'object' && typeof x.id === 'string') {
+          return {
+            id: x.id,
+            brand: typeof x.brand === 'string' ? x.brand : '',
+            model: typeof x.model === 'string' ? x.model : '',
+            image_url: typeof x.image_url === 'string' ? x.image_url : null,
+          };
+        }
+        // Formato viejo (solo ids como strings): se conserva el id; nombre e
+        // imagen quedan vacíos hasta que el usuario re-seleccione la card.
+        if (typeof x === 'string') return { id: x, brand: '', model: '', image_url: null };
+        return null;
+      })
+      .filter((x): x is CompareItem => x !== null)
+      .slice(0, MAX_COMPARE);
   } catch {
     return [];
   }
@@ -54,7 +81,7 @@ function persist() {
   }
 }
 
-function setSelection(next: string[]) {
+function setSelection(next: CompareItem[]) {
   selection = next;
   persist();
   emit();
@@ -79,38 +106,46 @@ function subscribe(callback: () => void): () => void {
   };
 }
 
-function getSnapshot(): string[] {
+function getSnapshot(): CompareItem[] {
   ensureInit();
   return selection;
 }
 
-function getServerSnapshot(): readonly string[] {
+function getServerSnapshot(): readonly CompareItem[] {
   return EMPTY;
 }
 
 export function useCompareSelection() {
-  const ids = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const items = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  const toggle = useCallback((id: string) => {
+  const toggle = useCallback((item: CompareItem) => {
     ensureInit();
-    if (selection.includes(id)) {
-      setSelection(selection.filter((x) => x !== id));
+    if (selection.some((x) => x.id === item.id)) {
+      setSelection(selection.filter((x) => x.id !== item.id));
     } else {
       if (selection.length >= MAX_COMPARE) return;
-      setSelection([...selection, id]);
+      setSelection([...selection, item]);
     }
+  }, []);
+
+  const remove = useCallback((id: string) => {
+    ensureInit();
+    setSelection(selection.filter((x) => x.id !== id));
   }, []);
 
   const clear = useCallback(() => setSelection([]), []);
 
-  const isFull = ids.length >= MAX_COMPARE;
+  const ids = items.map((i) => i.id);
+  const isFull = items.length >= MAX_COMPARE;
 
   return {
+    items,
     ids,
-    count: ids.length,
+    count: items.length,
     toggle,
+    remove,
     clear,
-    isSelected: (id: string) => ids.includes(id),
+    isSelected: (id: string) => items.some((i) => i.id === id),
     isFull,
     max: MAX_COMPARE,
   };

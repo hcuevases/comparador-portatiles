@@ -214,65 +214,101 @@ export default async function LaptopDetailPage({
   }, null);
 
   return (
-    <main className="mx-auto max-w-5xl p-8">
+    <main className="mx-auto max-w-5xl p-4 sm:p-8">
       <nav className="mb-6 text-sm">
         <Suspense fallback={<BackToCatalogFallback />}>
           <BackToCatalog />
         </Suspense>
       </nav>
 
-      <header className="mb-8 grid gap-6 sm:grid-cols-[auto_1fr] sm:items-start">
+      <header className="mb-10 grid gap-6 sm:grid-cols-[auto_1fr] sm:items-start sm:gap-8">
         {laptop.image_url && (
-          <div className="relative h-56 w-56 shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="relative h-60 w-60 shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-[radial-gradient(120%_120%_at_50%_0%,var(--color-zinc-100),var(--color-white))] shadow-md shadow-zinc-900/5 dark:border-zinc-800 dark:bg-[radial-gradient(120%_120%_at_50%_0%,var(--color-zinc-800),var(--color-zinc-950))]">
             <Image
               src={laptop.image_url}
               alt={`${laptop.brand} ${laptop.model}`}
               fill
-              sizes="224px"
-              className="object-contain p-2"
+              sizes="240px"
+              className="object-contain p-6 drop-shadow-lg"
               priority
             />
           </div>
         )}
         <div>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">{laptop.brand}</p>
-          <h1 className="text-3xl font-semibold tracking-tight">{laptop.model}</h1>
-          {laptop.year && (
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{laptop.year}</p>
-          )}
-          {laptop.slug.endsWith('-refurbished') && (
-            <span className="mt-2 inline-block rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-              Reacondicionado
-            </span>
-          )}
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-cyan-700 dark:text-cyan-400">
+            {laptop.brand}
+          </p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">{laptop.model}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {laptop.year && (
+              <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+                {laptop.year}
+              </span>
+            )}
+            {laptop.slug.endsWith('-refurbished') && (
+              <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                Reacondicionado
+              </span>
+            )}
+          </div>
           {laptop.description && (
             <p className="mt-4 max-w-2xl text-zinc-700 dark:text-zinc-300">
               {laptop.description}
             </p>
           )}
           {minPrice !== null && (
-            <p className="mt-4 text-lg font-medium">Desde {formatEur(minPrice)}</p>
+            <div className="mt-5 flex items-baseline gap-2">
+              <span className="text-sm text-zinc-500">Desde</span>
+              <span className="font-display text-3xl font-extrabold tracking-tight">
+                {formatEur(minPrice)}
+              </span>
+            </div>
           )}
-          <AddToCompareButton laptopId={laptop.id} />
-          <PriceAlertButton laptopId={laptop.id} />
+          <div className="mt-4 flex flex-wrap items-start gap-3">
+            <AddToCompareButton
+              laptop={{
+                id: laptop.id,
+                brand: laptop.brand,
+                model: laptop.model,
+                image_url: laptop.image_url,
+              }}
+            />
+            <PriceAlertButton laptopId={laptop.id} />
+          </div>
         </div>
       </header>
 
       {retailerCards.length > 0 && (
         <section className="mb-10">
-          <h2 className="mb-3 text-lg font-medium">Disponible en</h2>
+          <h2 className="mb-3 text-xl font-bold tracking-tight">Disponible en</h2>
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {retailerCards.map(({ retailer, link, latest }) => (
+            {retailerCards.map(({ retailer, link, latest }) => {
+              const isCheapest = minPrice !== null && latest.price_eur === minPrice;
+              return (
               <li
                 key={retailer.id}
-                className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+                className={
+                  'flex items-center justify-between gap-3 rounded-xl border bg-white p-4 transition-all hover:shadow-md dark:bg-zinc-950 ' +
+                  (isCheapest
+                    ? 'border-cyan-500 shadow-sm shadow-cyan-500/20 ring-1 ring-cyan-500/30'
+                    : 'border-zinc-200 shadow-sm dark:border-zinc-800')
+                }
               >
-                <div>
-                  <p className="font-medium">{retailer.name}</p>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    {formatEur(latest.price_eur)}{' '}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate font-medium">{retailer.name}</p>
+                    {isCheapest && (
+                      <span className="shrink-0 rounded-full bg-cyan-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                        Mejor precio
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 flex items-baseline gap-2">
+                    <span className="font-display text-xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100">
+                      {formatEur(latest.price_eur)}
+                    </span>
                     <span className="text-xs text-zinc-400">
-                      · actualizado {formatDayShort(latest.observed_at.slice(0, 10))}
+                      · {formatDayShort(latest.observed_at.slice(0, 10))}
                     </span>
                   </p>
                 </div>
@@ -281,23 +317,24 @@ export default async function LaptopDetailPage({
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer sponsored"
-                    className="inline-flex items-center rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-700"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-cyan-700"
                   >
-                    Ir a {retailer.name} →
+                    Ver oferta <span aria-hidden>→</span>
                   </a>
                 ) : (
-                  <span className="text-xs text-zinc-400">Sin enlace afiliado</span>
+                  <span className="shrink-0 text-xs text-zinc-400">Sin enlace afiliado</span>
                 )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         </section>
       )}
 
       {chartData.length > 0 && series.length > 0 && (
         <section className="mb-10">
-          <h2 className="mb-3 text-lg font-medium">Histórico de precios (90 días)</h2>
-          <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="mb-3 text-xl font-bold tracking-tight">Histórico de precios (90 días)</h2>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
             <PriceHistoryChart data={chartData} series={series} />
           </div>
           <p className="mt-2 text-xs text-zinc-500">
@@ -307,59 +344,95 @@ export default async function LaptopDetailPage({
         </section>
       )}
 
-      {specs && (
-        <section>
-          <h2 className="mb-3 text-lg font-medium">Especificaciones</h2>
-          <dl className="grid grid-cols-1 gap-x-8 gap-y-2 rounded-lg border border-zinc-200 bg-white p-6 sm:grid-cols-[max-content_1fr] dark:border-zinc-800 dark:bg-zinc-950">
-            <SpecRow label="CPU" value={specs.cpu} />
-            <SpecRow
-              label="Núcleos"
-              value={specs.cpu_cores ? `${specs.cpu_cores} núcleos` : null}
-            />
-            <SpecRow label="RAM" value={specs.ram_gb ? `${specs.ram_gb} GB` : null} />
-            <SpecRow
-              label="Almacenamiento"
-              value={
-                specs.storage_gb
-                  ? `${specs.storage_gb} GB${specs.storage_type ? ` (${specs.storage_type})` : ''}`
-                  : null
-              }
-            />
-            <SpecRow label="GPU" value={specs.gpu} />
-            <SpecRow
-              label="VRAM"
-              value={specs.gpu_vram_gb ? `${specs.gpu_vram_gb} GB` : null}
-            />
-            <SpecRow
-              label="Pantalla"
-              value={
-                specs.screen_inches
-                  ? `${specs.screen_inches}″${specs.screen_resolution ? ` · ${specs.screen_resolution}` : ''}${specs.screen_refresh_hz ? ` · ${specs.screen_refresh_hz} Hz` : ''}`
-                  : null
-              }
-            />
-            <SpecRow label="Tipo de panel" value={specs.screen_panel_type} />
-            <SpecRow label="Peso" value={specs.weight_kg ? `${specs.weight_kg} kg` : null} />
-            <SpecRow
-              label="Batería"
-              value={specs.battery_wh ? `${specs.battery_wh} Wh` : null}
-            />
-            <SpecRow
-              label="Puertos"
-              value={specs.ports && specs.ports.length > 0 ? specs.ports.join(', ') : null}
-            />
-            <SpecRow label="Sistema" value={specs.os} />
-            <SpecRow label="Tipo de uso" value={specs.usage_type} />
-            <SpecRow label="Gama" value={specs.product_line} />
-            <SpecRow label="Idioma del teclado" value={specs.keyboard_lang} />
-            <SpecRow
-              label="Optimizado para IA"
-              value={specs.ai_optimized === true ? 'Sí' : null}
-            />
-          </dl>
-        </section>
-      )}
+      {specs && <SpecsSection specs={specs} />}
     </main>
+  );
+}
+
+// Specs agrupadas por bloque temático para que la ficha se lea de un vistazo en
+// vez de como un listado plano de 16 filas. Los grupos sin ningún valor (y las
+// filas null dentro de cada grupo) no se renderizan.
+function SpecsSection({ specs }: { specs: Specs }) {
+  const groups: { title: string; rows: { label: string; value: string | null }[] }[] = [
+    {
+      title: 'Rendimiento',
+      rows: [
+        { label: 'CPU', value: specs.cpu },
+        { label: 'Núcleos', value: specs.cpu_cores ? `${specs.cpu_cores} núcleos` : null },
+        { label: 'RAM', value: specs.ram_gb ? `${specs.ram_gb} GB` : null },
+        {
+          label: 'Almacenamiento',
+          value: specs.storage_gb
+            ? `${specs.storage_gb} GB${specs.storage_type ? ` (${specs.storage_type})` : ''}`
+            : null,
+        },
+        { label: 'GPU', value: specs.gpu },
+        { label: 'VRAM', value: specs.gpu_vram_gb ? `${specs.gpu_vram_gb} GB` : null },
+      ],
+    },
+    {
+      title: 'Pantalla',
+      rows: [
+        {
+          label: 'Pantalla',
+          value: specs.screen_inches
+            ? `${specs.screen_inches}″${specs.screen_resolution ? ` · ${specs.screen_resolution}` : ''}${specs.screen_refresh_hz ? ` · ${specs.screen_refresh_hz} Hz` : ''}`
+            : null,
+        },
+        { label: 'Tipo de panel', value: specs.screen_panel_type },
+      ],
+    },
+    {
+      title: 'Diseño y batería',
+      rows: [
+        { label: 'Peso', value: specs.weight_kg ? `${specs.weight_kg} kg` : null },
+        { label: 'Batería', value: specs.battery_wh ? `${specs.battery_wh} Wh` : null },
+      ],
+    },
+    {
+      title: 'Conectividad',
+      rows: [
+        {
+          label: 'Puertos',
+          value: specs.ports && specs.ports.length > 0 ? specs.ports.join(', ') : null,
+        },
+      ],
+    },
+    {
+      title: 'Software y extras',
+      rows: [
+        { label: 'Sistema', value: specs.os },
+        { label: 'Tipo de uso', value: specs.usage_type },
+        { label: 'Gama', value: specs.product_line },
+        { label: 'Idioma del teclado', value: specs.keyboard_lang },
+        { label: 'Optimizado para IA', value: specs.ai_optimized === true ? 'Sí' : null },
+      ],
+    },
+  ]
+    .map((g) => ({ ...g, rows: g.rows.filter((r) => r.value !== null) }))
+    .filter((g) => g.rows.length > 0);
+
+  return (
+    <section>
+      <h2 className="mb-3 text-lg font-medium">Especificaciones</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {groups.map((group) => (
+          <div
+            key={group.title}
+            className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+          >
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-400">
+              {group.title}
+            </h3>
+            <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2">
+              {group.rows.map((r) => (
+                <SpecRow key={r.label} label={r.label} value={r.value} />
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
