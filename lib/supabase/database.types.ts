@@ -193,9 +193,11 @@ export type Database = {
           brand: string
           created_at: string
           description: string | null
+          ean: string | null
           id: string
           image_url: string | null
           model: string
+          mpn: string | null
           refurbished: boolean
           slug: string
           updated_at: string
@@ -205,9 +207,11 @@ export type Database = {
           brand: string
           created_at?: string
           description?: string | null
+          ean?: string | null
           id?: string
           image_url?: string | null
           model: string
+          mpn?: string | null
           refurbished?: boolean
           slug: string
           updated_at?: string
@@ -217,9 +221,11 @@ export type Database = {
           brand?: string
           created_at?: string
           description?: string | null
+          ean?: string | null
           id?: string
           image_url?: string | null
           model?: string
+          mpn?: string | null
           refurbished?: boolean
           slug?: string
           updated_at?: string
