@@ -60,6 +60,10 @@ const { values: args } = parseArgs({
     // no añade catálogo nuevo (eso se hace con el modo completo, p. ej.
     // desde el cron semanal).
     'prices-only': { type: 'boolean', default: false },
+    // Como --prices-only pero solo rellena laptops.ean/mpn por slug (backfill de la
+    // clave de dedup). No toca precios, specs ni crea productos. Combinable con
+    // --by-brand para cubrir todo el catálogo.
+    'ean-only': { type: 'boolean', default: false },
     // Particiona la búsqueda por marca para sortear el tope de paginación de
     // Algolia (1000 resultados por query). Sin esto solo alcanzamos los primeros
     // 1000 de los ~3700 portátiles del catálogo. Combinable con --prices-only.
@@ -76,6 +80,7 @@ const DRY_RUN = args['dry-run'];
 const DISCOVER_CATS = args['discover-categories'];
 const DISCOVER_ATTRS = args['discover-attrs'];
 const PRICES_ONLY = args['prices-only'];
+const EAN_ONLY = args['ean-only'];
 const BY_BRAND = args['by-brand'];
 const CHECK_ALERTS = args['check-alerts'];
 
@@ -139,6 +144,11 @@ type LaptopDetail = {
   description: string | null;
   imageUrl: string | null;
   refurbished: boolean;
+  // EAN/GTIN (código de barras universal) y MPN (referencia del fabricante).
+  // Clave de deduplicación entre fuentes: el mismo EAN identifica el mismo
+  // producto en PcComponentes y Amazon. Ver db/migrations/0025_dedup_ean.sql.
+  ean: string | null;
+  mpn: string | null;
   specs: Omit<TablesInsert<'specs'>, 'laptop_id'>;
   priceEur: number | null;
   affiliateUrl: string;
@@ -355,6 +365,8 @@ function mapHit(hit: AlgoliaHit): LaptopDetail | null {
     description,
     imageUrl,
     refurbished,
+    ean: asString(hit.ean),
+    mpn: asString(hit.mpn) ?? asString(hit.partNumber),
     specs: {
       cpu: cpuRaw,
       cpu_cores: asNumber(attr('nucleos', 'núcleos', 'cores')),
@@ -495,6 +507,28 @@ async function refreshPriceOnly(detail: LaptopDetail, retailerId: string): Promi
   return true;
 }
 
+/**
+ * Backfill de la clave de dedup: actualiza solo laptops.ean/mpn por slug. No crea
+ * productos ni toca precios/specs. Devuelve true si actualizó una fila existente.
+ */
+async function backfillEan(detail: LaptopDetail): Promise<boolean> {
+  if (detail.ean === null && detail.mpn === null) return false;
+  if (DRY_RUN) {
+    console.log(`  [dry-run ean-only] ${detail.slug} — ean=${detail.ean} mpn=${detail.mpn}`);
+    return true;
+  }
+  const { data, error } = await supabase
+    .from('laptops')
+    .update({ ean: detail.ean, mpn: detail.mpn })
+    .eq('slug', detail.slug)
+    .select('id');
+  if (error) {
+    console.error(`  ✗ Error ean ${detail.slug}: ${error.message}`);
+    return false;
+  }
+  return (data?.length ?? 0) > 0; // false si el slug no estaba en BD
+}
+
 async function upsertLaptop(detail: LaptopDetail, retailerId: string): Promise<void> {
   if (DRY_RUN) {
     console.log(`  [dry-run] ${detail.brand} ${detail.model} — ${detail.priceEur ?? '?'}€`);
@@ -510,6 +544,8 @@ async function upsertLaptop(detail: LaptopDetail, retailerId: string): Promise<v
     description: detail.description,
     image_url: detail.imageUrl,
     refurbished: detail.refurbished,
+    ean: detail.ean,
+    mpn: detail.mpn,
   };
   const { data: laptop, error: lapErr } = await supabase
     .from('laptops')
@@ -913,7 +949,11 @@ async function ingestQuery(
         continue;
       }
       try {
-        if (PRICES_ONLY) {
+        if (EAN_ONLY) {
+          const updated = await backfillEan(detail);
+          if (updated) state.ok += 1;
+          else state.skipped += 1;
+        } else if (PRICES_ONLY) {
           const inserted = await refreshPriceOnly(detail, retailerId);
           if (inserted) state.ok += 1;
           else state.skipped += 1;
