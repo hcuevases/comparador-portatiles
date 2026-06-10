@@ -62,9 +62,11 @@ export function extractGpuKey(gpuRaw: string | null, name: string): string | nul
     return null;
   }
 
-  // NVIDIA GeForce/Quadro RTX NNNN [Ti] → mobile (sufijo -laptop en nanoreview).
+  // NVIDIA GeForce RTX NNNN [Ti]. Clave canónica SIN sufijo de variante: nanoreview
+  // usa -laptop (50-series) o -mobile (40-series y anteriores) según generación, así
+  // que el sufijo lo prueba el scraper (candidateSlugs), no la clave.
   let m = haystack.match(/RTX\s+(\d{3,4})(\s*Ti)?/i);
-  if (m) return `rtx-${m[1]}${m[2] ? '-ti' : ''}-laptop`;
+  if (m) return `geforce-rtx-${m[1]}${m[2] ? '-ti' : ''}`;
 
   // AMD Radeon RX NNNN[S/M].
   m = haystack.match(/Radeon\s+RX\s+(\d{3,4}[A-Za-z]*)/i);

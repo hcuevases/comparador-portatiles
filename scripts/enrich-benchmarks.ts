@@ -86,11 +86,35 @@ type GpuFields = {
 
 // ─── Parsers (puros, sobre el mapa etiqueta→valor + score). Afinar con fixtures. ──
 
-function num(map: Record<string, string>, re: RegExp): number | null {
+// Primer entero del valor cuya ETIQUETA casa `re`. Limpia separadores de millar
+// ("12,296" / "12.296" → 12296). Para enteros simples (cores, scores).
+function firstNum(map: Record<string, string>, re: RegExp): number | null {
   for (const [k, v] of Object.entries(map)) {
     if (!re.test(k)) continue;
-    const m = v.replace(/[.,](?=\d{3}\b)/g, '').match(/-?\d+(?:[.,]\d+)?/);
-    if (m) return Math.round(parseFloat(m[0].replace(',', '.')));
+    const cleaned = v.replace(/[.,](?=\d{3}\b)/g, '');
+    const m = cleaned.match(/\d+/);
+    if (m) return Number(m[0]);
+  }
+  return null;
+}
+
+// Máximo entero del valor (para rangos tipo "35-140 W" → 140; TDP/TGP suelen darse
+// como rango configurable y el techo es lo representativo).
+function maxNum(map: Record<string, string>, re: RegExp): number | null {
+  for (const [k, v] of Object.entries(map)) {
+    if (!re.test(k)) continue;
+    const nums = (v.match(/\d+/g) ?? []).map(Number);
+    if (nums.length) return Math.max(...nums);
+  }
+  return null;
+}
+
+// Año a 4 dígitos ("January 3, 2023" → 2023).
+function yearOf(map: Record<string, string>, re: RegExp): number | null {
+  for (const [k, v] of Object.entries(map)) {
+    if (!re.test(k)) continue;
+    const m = v.match(/\b(19|20)\d{2}\b/);
+    if (m) return Number(m[0]);
   }
   return null;
 }
@@ -98,21 +122,26 @@ function num(map: Record<string, string>, re: RegExp): number | null {
 export function parseCpu(map: Record<string, string>, score: number | null): CpuFields {
   return {
     score,
-    geekbench_single: num(map, /geekbench.*single/i),
-    geekbench_multi: num(map, /geekbench.*multi/i),
-    cores: num(map, /(^|\b)cores\b|n[úu]cleos/i),
-    threads: num(map, /threads|hilos/i),
-    tdp_w: num(map, /\btdp\b|power|consumo/i),
-    release_year: num(map, /release|launch|a[ñn]o|year/i),
+    // El nombre de la barra es "Geekbench 6 (Single-Core)"; ojo de NO casar
+    // "Geekbench 6 Multi / Watt" (eficiencia) → exigir el paréntesis.
+    geekbench_single: firstNum(map, /geekbench 6 \(single/i),
+    geekbench_multi: firstNum(map, /geekbench 6 \(multi/i),
+    cores: firstNum(map, /total cores/i) ?? firstNum(map, /^cores$/i),
+    threads: firstNum(map, /^threads$/i),
+    tdp_w: maxNum(map, /\btdp\b/i),
+    release_year: yearOf(map, /released|release date/i),
   };
 }
 
 export function parseGpu(map: Record<string, string>, score: number | null): GpuFields {
+  // nanoreview etiqueta los 3DMark por su test ("Time Spy", "Fire Strike"…). Time Spy
+  // es el más citado para comparar GPU; fallback a Fire Strike / G3D Mark (PassMark).
   return {
     score,
-    g3dmark: num(map, /3dmark|time spy|graphics score/i),
-    vram_gb: num(map, /memory size|vram|memoria/i),
-    tdp_w: num(map, /\btdp\b|power|consumo/i),
+    g3dmark:
+      firstNum(map, /^time spy$/i) ?? firstNum(map, /^fire strike$/i) ?? firstNum(map, /g3d mark/i),
+    vram_gb: firstNum(map, /memory size|\bvram\b/i),
+    tdp_w: maxNum(map, /\btgp\b|\btdp\b/i),
   };
 }
 
@@ -151,26 +180,27 @@ async function extractPage(page: Page, url: string): Promise<Extract> {
 
   const data = await page.evaluate(() => {
     const out: Record<string, string> = {};
-    // Pares etiqueta→valor de tablas (layout típico de specs).
+    // (a) Specs: tabla <td>etiqueta</td><td>valor</td> (Released, Total Cores, TGP…).
     document.querySelectorAll('tr').forEach((tr) => {
       const cells = tr.querySelectorAll('td, th');
       if (cells.length >= 2) {
         const label = ((cells[0] as HTMLElement).innerText || '').trim();
         const value = ((cells[1] as HTMLElement).innerText || '').trim();
-        if (label && value && label.length < 60) out[label] = value;
+        if (label && value && label.length < 60 && !(label in out)) out[label] = value;
       }
     });
-    // Score global: nanoreview lo muestra como un número grande. Heurística:
-    // buscar un elemento cuyo texto sea solo un número 0-100 cerca de "score".
-    let score: number | null = null;
-    const scoreEl = document.querySelector(
-      '[class*="score"] [class*="value"], .score-value, [class*="rating"] [class*="num"]',
-    );
-    if (scoreEl) {
-      const m = (scoreEl as HTMLElement).innerText.match(/\b(\d{1,3})(?:\.\d+)?\b/);
-      if (m) score = Number(m[1]);
-    }
-    return { map: out, score, html: document.documentElement.outerHTML };
+    // (b) Benchmarks: se pintan como barras (.score-bar), NO como filas de tabla.
+    //     nombre (.score-bar-name) → resultado (.score-bar-result-number).
+    document.querySelectorAll('.score-bar').forEach((bar) => {
+      const name = ((bar.querySelector('.score-bar-name') as HTMLElement | null)?.innerText || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const val = ((bar.querySelector('.score-bar-result-number') as HTMLElement | null)?.innerText || '').trim();
+      if (name && val && !(name in out)) out[name] = val;
+    });
+    // El "score" global 0-100 de nanoreview no tiene un contenedor estable; se deja
+    // null y se usan los benchmarks crudos (Geekbench/3DMark) como métrica comparable.
+    return { map: out, score: null as number | null, html: document.documentElement.outerHTML };
   });
   return { kind: 'ok', data };
 }
@@ -259,14 +289,23 @@ async function existingKeys(table: 'cpu_benchmarks' | 'gpu_benchmarks'): Promise
   return out;
 }
 
-async function resolveSlug(kind: 'cpu' | 'gpu', key: string): Promise<string> {
+async function overrideSlug(kind: 'cpu' | 'gpu', key: string): Promise<string | null> {
   const { data } = await supabase
     .from('benchmark_overrides')
     .select('nanoreview_slug')
     .eq('kind', kind)
     .eq('source_key', key)
     .maybeSingle<{ nanoreview_slug: string }>();
-  return data?.nanoreview_slug ?? key;
+  return data?.nanoreview_slug ?? null;
+}
+
+// Slugs candidatos a probar en orden. nanoreview cambió el sufijo de las GPU de
+// portátil entre generaciones: 50-series usa `-laptop`, 40-series y anteriores
+// `-mobile`; AMD/Arc no llevan sufijo. La CPU casa directa con la clave.
+function candidateSlugs(kind: 'cpu' | 'gpu', key: string): string[] {
+  if (kind === 'cpu') return [key];
+  if (key.startsWith('geforce-')) return [`${key}-laptop`, `${key}-mobile`];
+  return [key, `${key}-mobile`];
 }
 
 async function scrapeKind(kind: 'cpu' | 'gpu', browser: Browser): Promise<void> {
@@ -279,39 +318,58 @@ async function scrapeKind(kind: 'cpu' | 'gpu', browser: Browser): Promise<void> 
   let notFound = 0;
   let walled = 0;
   for (const [i, key] of needed.entries()) {
-    const slug = await resolveSlug(kind, key);
-    const url = `${BASE}/${kind}/${slug}`;
-    const ctx = await browser.newContext({ locale: 'en-US', userAgent: UA });
-    const page = await ctx.newPage();
     const tag = `[${i + 1}/${needed.length}] ${key}`;
-    try {
-      const res = await extractPage(page, url);
-      if (res.kind === '404') {
-        notFound++;
-        console.log(`${tag} → 404`);
-        if (!DRY_RUN) await upsertNotFound(kind, key, slug);
-      } else if (res.kind === 'wall') {
-        walled++;
-        console.log(`${tag} → ⚠️ muro anti-bot`);
-      } else if (kind === 'cpu') {
-        const f = parseCpu(res.data.map, res.data.score);
-        console.log(`${tag} → ${JSON.stringify(f)}`);
-        if (hasCpuData(f)) {
-          ok++;
-          if (!DRY_RUN) await upsertCpu(key, slug, f);
-        } else if (!DRY_RUN) await upsertNotFound('cpu', key, slug);
-      } else {
-        const f = parseGpu(res.data.map, res.data.score);
-        console.log(`${tag} → ${JSON.stringify(f)}`);
-        if (hasGpuData(f)) {
-          ok++;
-          if (!DRY_RUN) await upsertGpu(key, slug, f);
-        } else if (!DRY_RUN) await upsertNotFound('gpu', key, slug);
+    const override = await overrideSlug(kind, key);
+    const candidates = override ? [override] : candidateSlugs(kind, key);
+
+    // Probar candidatos en orden: el primero que devuelve página real gana. Un 404
+    // pasa al siguiente; un muro corta (transitorio, se reintenta otra tanda).
+    let okData: PageData | null = null;
+    let usedSlug = candidates[0];
+    let wall = false;
+    for (const slug of candidates) {
+      const ctx = await browser.newContext({ locale: 'en-US', userAgent: UA });
+      const page = await ctx.newPage();
+      try {
+        const res = await extractPage(page, `${BASE}/${kind}/${slug}`);
+        if (res.kind === 'ok') {
+          okData = res.data;
+          usedSlug = slug;
+          break;
+        }
+        if (res.kind === 'wall') {
+          wall = true;
+          break;
+        }
+        // 404 → siguiente candidato
+      } catch (e) {
+        console.log(`${tag} (${slug}) → error: ${(e as Error).message.slice(0, 60)}`);
+      } finally {
+        await ctx.close();
       }
-    } catch (e) {
-      console.log(`${tag} → error: ${(e as Error).message.slice(0, 80)}`);
-    } finally {
-      await ctx.close();
+    }
+
+    if (wall) {
+      walled++;
+      console.log(`${tag} → ⚠️ muro anti-bot`);
+    } else if (!okData) {
+      notFound++;
+      console.log(`${tag} → 404 (probados: ${candidates.join(', ')})`);
+      if (!DRY_RUN) await upsertNotFound(kind, key, candidates[candidates.length - 1]);
+    } else if (kind === 'cpu') {
+      const f = parseCpu(okData.map, okData.score);
+      console.log(`${tag} (${usedSlug}) → ${JSON.stringify(f)}`);
+      if (hasCpuData(f)) {
+        ok++;
+        if (!DRY_RUN) await upsertCpu(key, usedSlug, f);
+      } else if (!DRY_RUN) await upsertNotFound('cpu', key, usedSlug);
+    } else {
+      const f = parseGpu(okData.map, okData.score);
+      console.log(`${tag} (${usedSlug}) → ${JSON.stringify(f)}`);
+      if (hasGpuData(f)) {
+        ok++;
+        if (!DRY_RUN) await upsertGpu(key, usedSlug, f);
+      } else if (!DRY_RUN) await upsertNotFound('gpu', key, usedSlug);
     }
     await sleep(DELAY);
   }
@@ -358,19 +416,27 @@ const existingSets: Record<'cpu_benchmarks' | 'gpu_benchmarks', Set<string>> = {
 
 async function dump(kind: 'cpu' | 'gpu', key: string): Promise<void> {
   const browser = await chromium.launch({ headless: true });
-  const ctx = await browser.newContext({ locale: 'en-US', userAgent: UA });
-  const page = await ctx.newPage();
-  const slug = await resolveSlug(kind, key);
-  const res = await extractPage(page, `${BASE}/${kind}/${slug}`);
+  const override = await overrideSlug(kind, key);
+  const candidates = override ? [override] : candidateSlugs(kind, key);
   mkdirSync('tmp', { recursive: true });
-  if (res.kind === 'ok') {
-    writeFileSync(`tmp/nanoreview-${kind}-${key}.html`, res.data.html);
-    writeFileSync(`tmp/nanoreview-${kind}-${key}.json`, JSON.stringify({ map: res.data.map, score: res.data.score }, null, 2));
-    console.log(`Volcado tmp/nanoreview-${kind}-${key}.html (+ .json del mapa parseado).`);
-  } else {
-    console.log(`No se pudo volcar: ${res.kind}`);
+  for (const slug of candidates) {
+    const ctx = await browser.newContext({ locale: 'en-US', userAgent: UA });
+    const page = await ctx.newPage();
+    const res = await extractPage(page, `${BASE}/${kind}/${slug}`);
+    await ctx.close();
+    if (res.kind === 'ok') {
+      writeFileSync(`tmp/nanoreview-${kind}-${key}.html`, res.data.html);
+      writeFileSync(
+        `tmp/nanoreview-${kind}-${key}.json`,
+        JSON.stringify({ slug, map: res.data.map, score: res.data.score }, null, 2),
+      );
+      console.log(`Volcado tmp/nanoreview-${kind}-${key}.* (slug: ${slug}).`);
+      await browser.close();
+      return;
+    }
+    console.log(`  ${slug} → ${res.kind}`);
   }
-  await ctx.close();
+  console.log('No se pudo volcar (ningún candidato dio página).');
   await browser.close();
 }
 

@@ -36,9 +36,9 @@ describe('extractCpuKey', () => {
 
 describe('extractGpuKey', () => {
   const cases: [gpu: string | null, name: string, expected: string | null][] = [
-    ['GeForce RTX 5060', 'MSI Stealth RTX 5060', 'rtx-5060-laptop'],
-    ['GeForce RTX 4060', 'Cyborg 15 RTX 4060', 'rtx-4060-laptop'],
-    ['GeForce RTX 5070 Ti', 'Raider RTX 5070 Ti', 'rtx-5070-ti-laptop'],
+    ['GeForce RTX 5060', 'MSI Stealth RTX 5060', 'geforce-rtx-5060'],
+    ['GeForce RTX 4060', 'Cyborg 15 RTX 4060', 'geforce-rtx-4060'],
+    ['GeForce RTX 5070 Ti', 'Raider RTX 5070 Ti', 'geforce-rtx-5070-ti'],
     ['AMD Radeon RX 7600S', 'ProArt RX 7600S', 'radeon-rx-7600s'],
     ['Intel Arc A370M', 'Vivobook Arc', 'arc-a370m'],
     ['Gráfica Integrada', 'ThinkPad T14 Intel Core i5', null],
