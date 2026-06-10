@@ -56,6 +56,24 @@ export type Database = {
           },
         ]
       }
+      benchmark_overrides: {
+        Row: {
+          kind: string
+          nanoreview_slug: string
+          source_key: string
+        }
+        Insert: {
+          kind: string
+          nanoreview_slug: string
+          source_key: string
+        }
+        Update: {
+          kind?: string
+          nanoreview_slug?: string
+          source_key?: string
+        }
+        Relationships: []
+      }
       comparisons: {
         Row: {
           created_at: string
@@ -86,6 +104,87 @@ export type Database = {
           slug?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      cpu_benchmarks: {
+        Row: {
+          component_key: string
+          cores: number | null
+          geekbench_multi: number | null
+          geekbench_single: number | null
+          name: string | null
+          nanoreview_slug: string | null
+          release_year: number | null
+          score: number | null
+          scraped_at: string
+          status: string
+          tdp_w: number | null
+          threads: number | null
+        }
+        Insert: {
+          component_key: string
+          cores?: number | null
+          geekbench_multi?: number | null
+          geekbench_single?: number | null
+          name?: string | null
+          nanoreview_slug?: string | null
+          release_year?: number | null
+          score?: number | null
+          scraped_at?: string
+          status?: string
+          tdp_w?: number | null
+          threads?: number | null
+        }
+        Update: {
+          component_key?: string
+          cores?: number | null
+          geekbench_multi?: number | null
+          geekbench_single?: number | null
+          name?: string | null
+          nanoreview_slug?: string | null
+          release_year?: number | null
+          score?: number | null
+          scraped_at?: string
+          status?: string
+          tdp_w?: number | null
+          threads?: number | null
+        }
+        Relationships: []
+      }
+      gpu_benchmarks: {
+        Row: {
+          component_key: string
+          g3dmark: number | null
+          name: string | null
+          nanoreview_slug: string | null
+          score: number | null
+          scraped_at: string
+          status: string
+          tdp_w: number | null
+          vram_gb: number | null
+        }
+        Insert: {
+          component_key: string
+          g3dmark?: number | null
+          name?: string | null
+          nanoreview_slug?: string | null
+          score?: number | null
+          scraped_at?: string
+          status?: string
+          tdp_w?: number | null
+          vram_gb?: number | null
+        }
+        Update: {
+          component_key?: string
+          g3dmark?: number | null
+          name?: string | null
+          nanoreview_slug?: string | null
+          score?: number | null
+          scraped_at?: string
+          status?: string
+          tdp_w?: number | null
+          vram_gb?: number | null
         }
         Relationships: []
       }
@@ -244,8 +343,10 @@ export type Database = {
           battery_wh: number | null
           cpu: string | null
           cpu_cores: number | null
+          cpu_key: string | null
           enriched_at: string | null
           gpu: string | null
+          gpu_key: string | null
           gpu_vram_gb: number | null
           keyboard_lang: string | null
           laptop_id: string
@@ -253,10 +354,15 @@ export type Database = {
           ports: string[] | null
           product_line: string | null
           ram_gb: number | null
+          screen_brightness_nits: number | null
+          screen_color_gamut: string | null
+          screen_hdr: string | null
           screen_inches: number | null
           screen_panel_type: string | null
           screen_refresh_hz: number | null
           screen_resolution: string | null
+          screen_response_ms: number | null
+          screen_touch: boolean | null
           storage_gb: number | null
           storage_type: string | null
           updated_at: string
@@ -268,8 +374,10 @@ export type Database = {
           battery_wh?: number | null
           cpu?: string | null
           cpu_cores?: number | null
+          cpu_key?: string | null
           enriched_at?: string | null
           gpu?: string | null
+          gpu_key?: string | null
           gpu_vram_gb?: number | null
           keyboard_lang?: string | null
           laptop_id: string
@@ -277,10 +385,15 @@ export type Database = {
           ports?: string[] | null
           product_line?: string | null
           ram_gb?: number | null
+          screen_brightness_nits?: number | null
+          screen_color_gamut?: string | null
+          screen_hdr?: string | null
           screen_inches?: number | null
           screen_panel_type?: string | null
           screen_refresh_hz?: number | null
           screen_resolution?: string | null
+          screen_response_ms?: number | null
+          screen_touch?: boolean | null
           storage_gb?: number | null
           storage_type?: string | null
           updated_at?: string
@@ -292,8 +405,10 @@ export type Database = {
           battery_wh?: number | null
           cpu?: string | null
           cpu_cores?: number | null
+          cpu_key?: string | null
           enriched_at?: string | null
           gpu?: string | null
+          gpu_key?: string | null
           gpu_vram_gb?: number | null
           keyboard_lang?: string | null
           laptop_id?: string
@@ -301,10 +416,15 @@ export type Database = {
           ports?: string[] | null
           product_line?: string | null
           ram_gb?: number | null
+          screen_brightness_nits?: number | null
+          screen_color_gamut?: string | null
+          screen_hdr?: string | null
           screen_inches?: number | null
           screen_panel_type?: string | null
           screen_refresh_hz?: number | null
           screen_resolution?: string | null
+          screen_response_ms?: number | null
+          screen_touch?: boolean | null
           storage_gb?: number | null
           storage_type?: string | null
           updated_at?: string

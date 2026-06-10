@@ -48,3 +48,6 @@ scrape-debug-*.json
 # documento de traspaso: solo local. La versión canónica vive en el vault
 # (nota 17-handoff). Decisión de Hector: no commitearlo.
 /HANDOFF.md
+
+# Dumps locales del scraper de benchmarks
+tmp/
