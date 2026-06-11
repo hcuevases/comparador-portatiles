@@ -210,7 +210,7 @@ function renderPage(
   }));
 
   return (
-    <main className="mx-auto max-w-5xl p-4 sm:p-8">
+    <main className="mx-auto max-w-6xl p-4 sm:p-8">
       <HomeHero />
 
       <header className="mb-4">
@@ -226,29 +226,37 @@ function renderPage(
         </div>
       )}
 
-      <LaptopFilters brands={allBrands} productLines={productLines} />
+      {/* Filtros en barra lateral izquierda (sticky en ≥lg para activar/desactivar
+          mientras se hace scroll); apilados sobre los resultados en móvil. */}
+      <div className="lg:grid lg:grid-cols-[16rem_1fr] lg:items-start lg:gap-8">
+        <aside className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pb-4">
+          <LaptopFilters brands={allBrands} productLines={productLines} />
+        </aside>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-zinc-500">
-          {totalCount === 0
-            ? 'Sin resultados con los filtros actuales.'
-            : `${totalCount} ${totalCount === 1 ? 'portátil' : 'portátiles'} en total · página ${currentPage} de ${totalPages}`}
-        </p>
-        {totalCount > 0 && <SortSelect />}
+        <div className="min-w-0">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-zinc-500">
+              {totalCount === 0
+                ? 'Sin resultados con los filtros actuales.'
+                : `${totalCount} ${totalCount === 1 ? 'portátil' : 'portátiles'} en total · página ${currentPage} de ${totalPages}`}
+            </p>
+            {totalCount > 0 && <SortSelect />}
+          </div>
+
+          {cards.length === 0 ? (
+            <EmptyState query={searchParams.q} />
+          ) : (
+            <LaptopGrid laptops={cards} backQuery={catalogQuery} />
+          )}
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            basePath="/"
+            searchParams={searchParams}
+          />
+        </div>
       </div>
-
-      {cards.length === 0 ? (
-        <EmptyState query={searchParams.q} />
-      ) : (
-        <LaptopGrid laptops={cards} backQuery={catalogQuery} />
-      )}
-
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        basePath="/"
-        searchParams={searchParams}
-      />
     </main>
   );
 }
