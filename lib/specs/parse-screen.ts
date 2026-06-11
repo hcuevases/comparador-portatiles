@@ -101,6 +101,30 @@ function parseResponseMs(map: Record<string, string>): number | null {
   return null;
 }
 
+// Tipo de panel desde el campo de pantalla ("…240Hz, OLED, VESA DisplayHDR…") o la
+// etiqueta "Tipo de pantalla". Se devuelve normalizado y coherente con los valores de
+// Algolia (OLED/AMOLED/IPS/LED/Retina…). Orden específico→genérico: "LED" es lo último
+// porque casi todo es retroiluminado por LED; si dice IPS/OLED queremos eso.
+const PANEL_TYPES: [label: string, re: RegExp][] = [
+  ['AMOLED', /\bamoled\b/i],
+  ['OLED', /\boled\b/i],
+  ['Mini LED', /mini[\s-]?led/i],
+  ['QLED', /\bqled\b/i],
+  ['Liquid Retina', /liquid\s*retina/i],
+  ['Retina', /\bretina\b/i],
+  ['Nano IPS', /nano\s*ips/i],
+  ['IPS', /\bips\b/i],
+  ['LED', /\bled\b/i],
+];
+
+export function parsePanelType(map: Record<string, string>): string | null {
+  const hay = scopeText(map, /tipo.*pantalla|tipo de panel/i);
+  for (const [label, re] of PANEL_TYPES) {
+    if (re.test(hay)) return label;
+  }
+  return null;
+}
+
 export function parseScreen(map: Record<string, string>): ScreenFields {
   return {
     screen_brightness_nits: parseBrightness(map),

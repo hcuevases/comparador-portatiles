@@ -33,7 +33,7 @@ import { createClient } from '@supabase/supabase-js';
 import { config as loadEnv } from 'dotenv';
 import { chromium, type Browser, type Page } from 'playwright';
 
-import { parseScreen, type ScreenFields } from '@/lib/specs/parse-screen';
+import { parseScreen, parsePanelType, type ScreenFields } from '@/lib/specs/parse-screen';
 import type { Database } from '@/lib/supabase/database.types';
 
 loadEnv({ path: '.env.local' });
@@ -375,6 +375,16 @@ async function main(): Promise<void> {
         console.log(`${tag} → ⚠️ muro Cloudflare`);
       } else {
         const parsed = parseSpecs(res.table);
+        // Tipo de panel: rellena solo si está null para NO pisar el valor fiable de
+        // Algolia (facet). Se hace aparte del update principal por eso (fill-if-null).
+        const panel = parsePanelType(res.table);
+        if (panel && !DRY_RUN) {
+          await supabase
+            .from('specs')
+            .update({ screen_panel_type: panel })
+            .eq('laptop_id', laptop.id)
+            .is('screen_panel_type', null);
+        }
         const summary = Object.entries(parsed)
           .filter(([, v]) => v != null && (!Array.isArray(v) || v.length > 0))
           .map(([k, v]) => `${k}=${Array.isArray(v) ? v.length + ' puertos' : v}`)
