@@ -2,11 +2,25 @@ import { describe, expect, it } from 'vitest';
 
 import { parseScreen } from './parse-screen';
 
-// Fixtures con etiquetas plausibles de la ficha de PcComponentes (vendedor +
-// fabricante). NO verificadas contra la ficha real (Cloudflare) — al recuperar acceso
-// hay que validar con --dry-run y ajustar regex; estos tests fijan el comportamiento.
+// Fixtures con valores REALES de la ficha de PcComponentes (vendedor + fabricante),
+// verificados con --dry-run el 2026-06-11. Fijan el comportamiento ante cambios.
 
 describe('parseScreen', () => {
+  it('extrae del campo "Pantalla" empaquetado (layout vendedor) sin falso positivo de WebCam', () => {
+    const map: Record<string, string> = {
+      Pantalla: '16" QHD+ (2560x1600), 240Hz, OLED, VESA DisplayHDR™ True Black 600, 100% DCI-P3',
+      WebCam: 'IR FHD (30fps@1080p) con HDR, 3D Noise Reduction', // su "HDR" NO debe colarse
+    };
+    expect(parseScreen(map)).toEqual({
+      screen_brightness_nits: null, // "True Black 600" es HDR, no nits
+      screen_touch: null,
+      screen_color_gamut: '100% DCI-P3',
+      screen_hdr: 'HDR True Black 600',
+      screen_response_ms: null,
+    });
+  });
+
+
   it('extrae brillo, táctil, gama, HDR y respuesta', () => {
     const map: Record<string, string> = {
       Brillo: '400 cd/m²',
