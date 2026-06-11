@@ -52,37 +52,41 @@ export function HomeHero() {
 
       <div className="relative mx-auto max-w-2xl text-center">
         <p
-          className="animate-rise mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-cyan-300"
+          className="animate-rise mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-cyan-300"
           style={{ animationDelay: '0ms' }}
         >
-          <span aria-hidden>✦</span> Recomendador con IA sobre catálogo real
+          <span aria-hidden>✦</span> Recomendador con IA · catálogo real
         </p>
 
         <h1
-          className="animate-rise font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl"
+          className="animate-rise font-display text-xl font-extrabold leading-tight tracking-tight sm:text-3xl"
           style={{ animationDelay: '80ms' }}
         >
-          Encuentra tu portátil
-          <span className="block bg-gradient-to-r from-cyan-300 via-cyan-200 to-emerald-300 bg-clip-text text-transparent">
-            con inteligencia artificial
+          Tu próximo portátil, elegido{' '}
+          <span className="whitespace-nowrap bg-gradient-to-r from-cyan-300 via-cyan-200 to-emerald-300 bg-clip-text text-transparent">
+            con IA
           </span>
         </h1>
 
         <p
-          className="animate-rise mx-auto mt-3 max-w-xl text-sm text-zinc-300 sm:text-base"
+          className="animate-rise mx-auto mt-2 max-w-md text-sm text-zinc-300"
           style={{ animationDelay: '160ms' }}
         >
-          Busca por marca o modelo y filtra al instante, o describe lo que necesitas y deja
-          que la IA te lo recomiende.
+          Búscalo por marca o modelo, o cuéntale a la IA qué necesitas.
         </p>
 
-        {/* Buscador único: filtra en vivo + lanza la IA */}
+        {/* Command bar: el buscador es la estrella. Icono + input + acción en una
+            sola pieza unificada tipo Spotlight. Filtra en vivo (?q=) + lanza la IA. */}
         <div
-          className="animate-rise mx-auto mt-5 flex max-w-xl flex-col gap-2 sm:flex-row"
+          className="animate-rise mx-auto mt-6 flex max-w-xl items-center gap-1.5 rounded-2xl border border-white/15 bg-white/10 p-1.5 pl-3 shadow-2xl shadow-cyan-500/10 ring-1 ring-white/10 backdrop-blur transition-colors sm:gap-2 sm:pl-4 focus-within:border-cyan-400/60 focus-within:ring-cyan-400/30"
           style={{ animationDelay: '240ms' }}
         >
+          <span aria-hidden className="shrink-0 text-lg text-cyan-300">
+            ✨
+          </span>
           <input
             type="search"
+            size={1}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {
@@ -91,41 +95,49 @@ export function HomeHero() {
                 ask();
               }
             }}
-            placeholder="ThinkPad… o dime qué buscas"
+            placeholder="busca o dime qué necesitas…"
             aria-label="Busca un portátil o describe lo que necesitas"
-            className="min-w-0 flex-1 rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-zinc-400 backdrop-blur focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
+            className="min-w-0 flex-1 bg-transparent py-2.5 text-sm text-white placeholder:text-zinc-400 focus:outline-none"
           />
           <button
             type="button"
             onClick={() => ask()}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-zinc-950 shadow-lg shadow-cyan-500/20 transition-transform hover:scale-[1.02] active:scale-100"
+            className="shrink-0 rounded-xl bg-cyan-400 px-3.5 py-2.5 text-sm font-semibold text-zinc-950 shadow-lg shadow-cyan-500/20 transition-transform hover:scale-[1.02] active:scale-100 sm:px-4"
           >
-            <span aria-hidden>✨</span> Recomiéndame
+            Recomiéndame
           </button>
         </div>
 
         <div
-          className="animate-rise mt-4 flex flex-wrap justify-center gap-2"
+          className="animate-rise mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5 text-xs"
           style={{ animationDelay: '320ms' }}
         >
+          <span className="text-zinc-500">Prueba:</span>
           {EJEMPLOS.map((e) => (
             <button
               key={e}
               type="button"
               onClick={() => ask(e)}
-              className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300 transition-colors hover:border-cyan-400/40 hover:text-white"
+              className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-zinc-300 transition-colors hover:border-cyan-400/40 hover:text-white"
             >
               {e}
             </button>
           ))}
         </div>
 
-        <p
-          className="animate-rise mt-5 text-xs text-zinc-400"
+        <div
+          className="animate-rise mt-5 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[11px] text-zinc-400"
           style={{ animationDelay: '400ms' }}
         >
-          +3.800 portátiles · precios reales · Acer · Lenovo · HP · MSI · ASUS · Apple
-        </p>
+          {['+3.800 modelos', 'precios reales', 'Acer · Lenovo · HP · MSI · ASUS · Apple'].map(
+            (s, i) => (
+              <span key={s} className="inline-flex items-center gap-1.5">
+                {i > 0 && <span aria-hidden className="text-zinc-600">·</span>}
+                {s}
+              </span>
+            ),
+          )}
+        </div>
       </div>
     </section>
   );
