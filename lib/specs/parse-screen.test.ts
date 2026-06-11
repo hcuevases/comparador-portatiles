@@ -1,9 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseScreen } from './parse-screen';
+import { parseScreen, parsePanelType } from './parse-screen';
 
 // Fixtures con valores REALES de la ficha de PcComponentes (vendedor + fabricante),
 // verificados con --dry-run el 2026-06-11. Fijan el comportamiento ante cambios.
+
+describe('parsePanelType', () => {
+  const cases: [map: Record<string, string>, expected: string | null][] = [
+    [{ Pantalla: '16" QHD+ (2560x1600), 240Hz, OLED, VESA DisplayHDR 600' }, 'OLED'],
+    [{ Pantalla: '14" FHD (1920x1080), 60Hz, IPS, LED' }, 'IPS'], // IPS gana a LED
+    [{ Pantalla: '15.6" Full HD, LED' }, 'LED'], // LED solo cuando no hay nada más específico
+    [{ 'Tipo de pantalla': 'AMOLED' }, 'AMOLED'],
+    [{ Pantalla: '13.6" Liquid Retina' }, 'Liquid Retina'],
+    [{ Procesador: 'Intel Core i7' }, null],
+  ];
+  it.each(cases)('parsePanelType(%j) → %j', (map, expected) => {
+    expect(parsePanelType(map)).toBe(expected);
+  });
+});
 
 describe('parseScreen', () => {
   it('extrae del campo "Pantalla" empaquetado (layout vendedor) sin falso positivo de WebCam', () => {
