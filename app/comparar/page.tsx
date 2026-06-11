@@ -24,6 +24,11 @@ type SpecRow = Pick<
   | 'screen_resolution'
   | 'screen_refresh_hz'
   | 'screen_panel_type'
+  | 'screen_brightness_nits'
+  | 'screen_touch'
+  | 'screen_color_gamut'
+  | 'screen_hdr'
+  | 'screen_response_ms'
   | 'weight_kg'
   | 'battery_wh'
   | 'ports'
@@ -85,7 +90,7 @@ export default async function CompararPage({
     supabase
       .from('specs')
       .select(
-        'laptop_id, cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, screen_panel_type, weight_kg, battery_wh, ports, os, usage_type, product_line, cpu_key, gpu_key',
+        'laptop_id, cpu, cpu_cores, ram_gb, storage_gb, storage_type, gpu, gpu_vram_gb, screen_inches, screen_resolution, screen_refresh_hz, screen_panel_type, screen_brightness_nits, screen_touch, screen_color_gamut, screen_hdr, screen_response_ms, weight_kg, battery_wh, ports, os, usage_type, product_line, cpu_key, gpu_key',
       )
       .in('laptop_id', ids)
       .returns<SpecRow[]>(),
@@ -392,6 +397,17 @@ function buildRows(
       return parts.join(' · ');
     }),
     text('Tipo de panel', (id) => get(id, 'screen_panel_type')),
+    num('Brillo', 'higher', (id) => {
+      const v = get(id, 'screen_brightness_nits');
+      return { value: v === null ? null : `${v} nits`, rank: v };
+    }),
+    text('Gama de color', (id) => get(id, 'screen_color_gamut')),
+    text('HDR', (id) => get(id, 'screen_hdr')),
+    text('Táctil', (id) => (get(id, 'screen_touch') === true ? 'Sí' : null)),
+    num('Tiempo de respuesta', 'lower', (id) => {
+      const v = get(id, 'screen_response_ms');
+      return { value: v === null ? null : `${v} ms`, rank: v };
+    }),
     num('Peso', 'lower', (id) => {
       const v = get(id, 'weight_kg');
       return { value: v === null ? null : `${v} kg`, rank: v };
