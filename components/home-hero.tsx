@@ -44,7 +44,7 @@ export function HomeHero() {
   }
 
   return (
-    <section className="hero-mesh hero-grain relative mb-6 overflow-hidden rounded-3xl border border-white/10 px-6 py-12 text-white sm:px-10 sm:py-14">
+    <section className="hero-mesh hero-grain relative mb-6 overflow-hidden rounded-3xl border border-white/10 px-6 py-8 text-white sm:px-10 sm:py-10">
       <div
         aria-hidden
         className="pointer-events-none absolute -top-24 left-1/2 h-48 w-[36rem] -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl"
@@ -59,7 +59,7 @@ export function HomeHero() {
         </p>
 
         <h1
-          className="animate-rise font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl"
+          className="animate-rise font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl"
           style={{ animationDelay: '80ms' }}
         >
           Encuentra tu portátil
@@ -69,7 +69,7 @@ export function HomeHero() {
         </h1>
 
         <p
-          className="animate-rise mx-auto mt-5 max-w-xl text-base text-zinc-300 sm:text-lg"
+          className="animate-rise mx-auto mt-3 max-w-xl text-sm text-zinc-300 sm:text-base"
           style={{ animationDelay: '160ms' }}
         >
           Busca por marca o modelo y filtra al instante, o describe lo que necesitas y deja
@@ -78,7 +78,7 @@ export function HomeHero() {
 
         {/* Buscador único: filtra en vivo + lanza la IA */}
         <div
-          className="animate-rise mx-auto mt-7 flex max-w-xl flex-col gap-2 sm:flex-row"
+          className="animate-rise mx-auto mt-5 flex max-w-xl flex-col gap-2 sm:flex-row"
           style={{ animationDelay: '240ms' }}
         >
           <input
@@ -121,7 +121,7 @@ export function HomeHero() {
         </div>
 
         <p
-          className="animate-rise mt-7 text-xs text-zinc-400"
+          className="animate-rise mt-5 text-xs text-zinc-400"
           style={{ animationDelay: '400ms' }}
         >
           +3.800 portátiles · precios reales · Acer · Lenovo · HP · MSI · ASUS · Apple
