@@ -21,9 +21,11 @@ export function extractCpuKey(name: string, family: string | null): string | nul
   const apple = fam.match(/^M([1-5])(?:\s+(Pro|Max|Ultra))?\b/i);
   if (apple) return `apple-m${apple[1]}${apple[2] ? `-${apple[2].toLowerCase()}` : ''}`;
 
-  // Intel Core i3/i5/i7/i9 con modelo "iN-NNNNN[letras]".
-  let m = name.match(/Core\s+i([3579])-(\d{3,5})([A-Za-z]*)/i);
-  if (m) return `intel-core-i${m[1]}-${m[2]}${m[3].toLowerCase()}`;
+  // Intel Core i3/i5/i7/i9 con modelo "iN-NNNNN[sufijo]". El sufijo puede llevar un
+  // dígito final (Tiger Lake "G7": i5-1135G7), así que capturamos letra(s)+dígitos —
+  // si solo cogiéramos letras, "1135G7" → "g" y el slug de nanoreview no casaría.
+  let m = name.match(/Core\s+i([3579])-(\d{3,5})([A-Za-z]+\d*)?/i);
+  if (m) return `intel-core-i${m[1]}-${m[2]}${(m[3] ?? '').toLowerCase()}`;
 
   // Intel Core Ultra 5/7/9 "Ultra N NNN[letra]".
   m = name.match(/Core\s+Ultra\s+([579])\s+(\d{3})([A-Za-z]*)/i);

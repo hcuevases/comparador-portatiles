@@ -11,6 +11,8 @@ describe('extractCpuKey', () => {
     ['Cyborg 15 A13VF-879XES Intel Core i7-13620H/32GB/1TB SSD/RTX 4060', 'Intel Core I7', 'intel-core-i7-13620h'],
     ['Katana 17 HX B14WFK-082XES 17.3" Intel Core i9-14900HX 32GB', 'Intel Core i9', 'intel-core-i9-14900hx'],
     ['Modern 15 F13MG-698XFR 15,6" Intel Core i3-1315U 16GB', 'Intel Core I3', 'intel-core-i3-1315u'],
+    // Sufijo con dígito (Tiger Lake "G7"): no debe perder el 7.
+    ['Swift 3 SF314 Intel Core i5-1135G7 8GB 512GB SSD 14"', 'Intel Core I5', 'intel-core-i5-1135g7'],
     ['Stealth 16 AI A2HWFG-070FR 16" Intel Core Ultra 7 255H 32GB', 'Intel Core Ultra 7', 'intel-core-ultra-7-255h'],
     ['Galaxy Book5 360 AMOLED Intel Core Ultra 5 226V/16GB/512GB SSD', 'Intel Core Ultra 5', 'intel-core-ultra-5-226v'],
     ['Vector 16 HX AI A2XWHG-241ES Intel Core Ultra 9 275HX/32GB', 'Intel Core Ultra 9', 'intel-core-ultra-9-275hx'],
