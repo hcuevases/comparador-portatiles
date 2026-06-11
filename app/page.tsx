@@ -226,10 +226,11 @@ function renderPage(
         </div>
       )}
 
-      {/* Filtros en barra lateral izquierda (sticky en ≥lg para activar/desactivar
-          mientras se hace scroll); apilados sobre los resultados en móvil. */}
-      <div className="lg:grid lg:grid-cols-[16rem_1fr] lg:items-start lg:gap-8">
-        <aside className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pb-4">
+      {/* Filtros en barra lateral izquierda (sticky en ≥md — incluye tablets y el
+          modo escritorio del móvil; apilados sobre los resultados en pantallas
+          pequeñas). */}
+      <div className="md:grid md:grid-cols-[15rem_1fr] md:items-start md:gap-6 lg:grid-cols-[16rem_1fr] lg:gap-8">
+        <aside className="md:sticky md:top-4 md:max-h-[calc(100vh-2rem)] md:overflow-y-auto md:pb-4">
           <LaptopFilters brands={allBrands} productLines={productLines} />
         </aside>
 
