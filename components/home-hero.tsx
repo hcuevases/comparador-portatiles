@@ -60,7 +60,7 @@ export function HomeHero() {
         </p>
 
         <h1
-          className="animate-rise font-display text-xl font-extrabold leading-tight tracking-tight sm:text-3xl"
+          className="animate-rise font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-3xl"
           style={{ animationDelay: '80ms' }}
         >
           Tu próximo portátil, elegido{' '}
@@ -125,7 +125,7 @@ export function HomeHero() {
         </div>
 
         <div
-          className="animate-rise mt-5 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[11px] text-zinc-500 dark:text-zinc-400"
+          className="animate-rise mt-5 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400"
           style={{ animationDelay: '400ms' }}
         >
           {['+3.800 modelos', 'precios reales', 'Acer · Lenovo · HP · MSI · ASUS · Apple'].map(
