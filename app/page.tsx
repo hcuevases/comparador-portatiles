@@ -1,3 +1,4 @@
+import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 import { HomeHero } from '@/components/home-hero';
@@ -210,7 +211,7 @@ function renderPage(
   }));
 
   return (
-    <main className="mx-auto max-w-6xl p-4 sm:p-8">
+    <main className="mx-auto w-full max-w-6xl p-4 sm:p-8">
       <HomeHero />
 
       <header className="mb-4">
@@ -274,7 +275,7 @@ function EmptyState({ query }: { query?: string }) {
         href={q ? `/asistente?q=${encodeURIComponent(q)}` : '/asistente'}
         className="mt-4 inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-cyan-700"
       >
-        <span aria-hidden>✨</span> {q ? `Pregúntale a la IA por "${q.slice(0, 30)}"` : 'Pregúntale a la IA'}
+        <Sparkles className="h-4 w-4" aria-hidden /> {q ? `Pregúntale a la IA por "${q.slice(0, 30)}"` : 'Pregúntale a la IA'}
       </Link>
     </div>
   );

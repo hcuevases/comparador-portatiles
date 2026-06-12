@@ -25,7 +25,7 @@ export function CompareBar() {
       <div aria-hidden className="h-36" />
 
       <div className="fixed inset-x-0 bottom-0 z-30 px-3 pb-3 sm:px-6 sm:pb-5">
-        <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/85 shadow-2xl shadow-zinc-900/15 ring-1 ring-black/5 backdrop-blur-xl dark:border-zinc-700/60 dark:bg-zinc-900/85 dark:shadow-black/50">
+        <div className="animate-bar-in mx-auto max-w-4xl overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/70 shadow-2xl shadow-zinc-900/15 ring-1 ring-black/5 backdrop-blur-xl dark:border-zinc-700/60 dark:bg-zinc-900/70 dark:shadow-black/50">
           {/* Línea de acento superior */}
           <div
             aria-hidden
@@ -34,7 +34,7 @@ export function CompareBar() {
 
           <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
             {/* Miniaturas + huecos */}
-            <div className="flex min-w-0 items-center gap-2.5 overflow-x-auto">
+            <div className="flex min-w-0 items-center gap-2.5 overflow-x-auto no-scrollbar p-1.5">
               {items.map((item) => (
                 <Thumb key={item.id} item={item} onRemove={() => remove(item.id)} />
               ))}
@@ -87,7 +87,7 @@ export function CompareBar() {
 
 function Thumb({ item, onRemove }: { item: CompareItem; onRemove: () => void }) {
   return (
-    <div className="group/thumb relative shrink-0">
+    <div className="animate-pop-in group/thumb relative shrink-0">
       <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-950">
         {item.image_url ? (
           <Image

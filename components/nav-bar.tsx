@@ -1,3 +1,4 @@
+import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 import { signOut } from '@/app/(auth)/actions';
@@ -17,7 +18,7 @@ export async function NavBar() {
 
   return (
     <header className="border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-8 py-3">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-8">
         <Link href="/" className="font-display text-base font-extrabold tracking-tight">
           Comparador
         </Link>
@@ -27,7 +28,7 @@ export async function NavBar() {
             href="/asistente"
             className="inline-flex items-center gap-1 font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300"
           >
-            <span aria-hidden>✨</span> Asistente IA
+            <Sparkles className="h-4 w-4" aria-hidden /> Asistente IA
           </Link>
           {user ? (
             <>

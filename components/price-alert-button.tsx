@@ -1,5 +1,6 @@
 'use client';
 
+import { Bell, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -67,7 +68,7 @@ export function PriceAlertButton({ laptopId }: { laptopId: string }) {
     <div>
       {status === 'loading' && (
         <span className={`${baseClass} border-zinc-200 text-zinc-400 dark:border-zinc-800`}>
-          🔔 Avísame si baja de precio
+          <Bell className="h-4 w-4" aria-hidden /> Avísame si baja de precio
         </span>
       )}
 
@@ -76,7 +77,7 @@ export function PriceAlertButton({ laptopId }: { laptopId: string }) {
           href="/login"
           className={`${baseClass} border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900`}
         >
-          🔔 Inicia sesión para crear una alerta de precio
+          <Bell className="h-4 w-4" aria-hidden /> Inicia sesión para crear una alerta de precio
         </Link>
       )}
 
@@ -87,7 +88,7 @@ export function PriceAlertButton({ laptopId }: { laptopId: string }) {
           disabled={busy}
           className={`${baseClass} border-zinc-300 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900`}
         >
-          🔔 Avísame si baja de precio
+          <Bell className="h-4 w-4" aria-hidden /> Avísame si baja de precio
         </button>
       )}
 
@@ -96,7 +97,7 @@ export function PriceAlertButton({ laptopId }: { laptopId: string }) {
           <span
             className={`${baseClass} border-green-500 bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300`}
           >
-            ✓ Alerta de precio activa
+            <Check className="h-4 w-4" aria-hidden /> Alerta de precio activa
           </span>
           <button
             type="button"
