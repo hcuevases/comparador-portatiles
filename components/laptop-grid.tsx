@@ -1,5 +1,6 @@
 'use client';
 
+import { Check, Plus } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -85,7 +86,11 @@ export function LaptopGrid({
                 (disabled ? ' cursor-not-allowed opacity-40' : '')
               }
             >
-              {selected ? '✓' : '+'}
+              {selected ? (
+                <Check className="h-4 w-4" aria-hidden />
+              ) : (
+                <Plus className="h-4 w-4" aria-hidden />
+              )}
             </button>
 
             <Link
@@ -149,7 +154,7 @@ export function LaptopGrid({
                   {l.minPriceEur !== null ? (
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-xs text-zinc-500">Desde</span>
-                      <span className="font-display text-2xl font-extrabold tracking-tight">
+                      <span className="font-display text-2xl font-extrabold tracking-tight tabular-nums">
                         {formatEur(l.minPriceEur)}
                       </span>
                     </div>

@@ -1,5 +1,7 @@
 'use client';
 
+import { Check, Plus } from 'lucide-react';
+
 import { useCompareSelection, type CompareItem } from '@/lib/use-compare-selection';
 
 // Botón de la ficha individual para añadir/quitar el portátil de la selección
@@ -26,7 +28,15 @@ export function AddToCompareButton({ laptop }: { laptop: CompareItem }) {
           (disabled ? ' cursor-not-allowed opacity-50' : '')
         }
       >
-        {selected ? '✓ En tu comparativa' : '+ Añadir a comparar'}
+        {selected ? (
+          <>
+            <Check className="h-4 w-4" aria-hidden /> En tu comparativa
+          </>
+        ) : (
+          <>
+            <Plus className="h-4 w-4" aria-hidden /> Añadir a comparar
+          </>
+        )}
       </button>
       {disabled && (
         <p className="mt-1.5 text-xs text-zinc-500">

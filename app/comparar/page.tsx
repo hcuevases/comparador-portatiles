@@ -212,7 +212,7 @@ export default async function CompararPage({
       )}
 
       <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <table className="w-full border-collapse text-sm">
+        <table className="w-full border-collapse text-sm tabular-nums">
           <thead>
             <tr className="border-b border-zinc-200 dark:border-zinc-800">
               <th className="sticky left-0 z-10 w-40 border-r border-zinc-200 bg-white px-4 py-3 text-left align-bottom text-xs font-medium uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
@@ -282,7 +282,7 @@ export default async function CompararPage({
                         ) : (
                           <span className="inline-flex items-center gap-1.5">
                             {String(cell.value)}
-                            {won && (
+                            {won && isPrice && (
                               <span className="rounded-full bg-cyan-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none tracking-wide text-white">
                                 mejor
                               </span>

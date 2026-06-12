@@ -56,7 +56,7 @@ export function CookieBanner() {
       aria-label="Aviso de cookies"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95"
     >
-      <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <p className="text-sm text-zinc-700 dark:text-zinc-300">
           Usamos solo cookies necesarias para el inicio de sesión y almacenamiento local para
           recordar tu selección. No usamos analítica ni publicidad.{' '}

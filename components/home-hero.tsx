@@ -1,5 +1,6 @@
 'use client';
 
+import { Sparkles } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
@@ -44,7 +45,7 @@ export function HomeHero() {
   }
 
   return (
-    <section className="hero-mesh hero-grain relative mb-6 overflow-hidden rounded-3xl border border-white/10 px-6 py-8 text-white sm:px-10 sm:py-10">
+    <section className="hero-mesh hero-grain relative mb-6 overflow-hidden rounded-3xl border border-zinc-200/80 px-6 py-8 text-zinc-900 sm:px-10 sm:py-10 dark:border-white/10 dark:text-white">
       <div
         aria-hidden
         className="pointer-events-none absolute -top-24 left-1/2 h-48 w-[36rem] -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl"
@@ -52,10 +53,10 @@ export function HomeHero() {
 
       <div className="relative mx-auto max-w-2xl text-center">
         <p
-          className="animate-rise mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-cyan-300"
+          className="animate-rise mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-600/20 bg-white/60 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-cyan-700 dark:border-white/15 dark:bg-white/5 dark:text-cyan-300"
           style={{ animationDelay: '0ms' }}
         >
-          <span aria-hidden>✦</span> Recomendador con IA · catálogo real
+          <Sparkles className="h-3.5 w-3.5" aria-hidden /> Recomendador con IA · catálogo real
         </p>
 
         <h1
@@ -63,13 +64,13 @@ export function HomeHero() {
           style={{ animationDelay: '80ms' }}
         >
           Tu próximo portátil, elegido{' '}
-          <span className="whitespace-nowrap bg-gradient-to-r from-cyan-300 via-cyan-200 to-emerald-300 bg-clip-text text-transparent">
+          <span className="whitespace-nowrap bg-gradient-to-r from-cyan-600 via-cyan-500 to-emerald-500 bg-clip-text text-transparent dark:from-cyan-300 dark:via-cyan-200 dark:to-emerald-300">
             con IA
           </span>
         </h1>
 
         <p
-          className="animate-rise mx-auto mt-2 max-w-md text-sm text-zinc-300"
+          className="animate-rise mx-auto mt-2 max-w-md text-sm text-zinc-600 dark:text-zinc-300"
           style={{ animationDelay: '160ms' }}
         >
           Búscalo por marca o modelo, o cuéntale a la IA qué necesitas.
@@ -78,12 +79,10 @@ export function HomeHero() {
         {/* Command bar: el buscador es la estrella. Icono + input + acción en una
             sola pieza unificada tipo Spotlight. Filtra en vivo (?q=) + lanza la IA. */}
         <div
-          className="animate-rise mx-auto mt-6 flex max-w-xl items-center gap-1.5 rounded-2xl border border-white/15 bg-white/10 p-1.5 pl-3 shadow-2xl shadow-cyan-500/10 ring-1 ring-white/10 backdrop-blur transition-colors sm:gap-2 sm:pl-4 focus-within:border-cyan-400/60 focus-within:ring-cyan-400/30"
+          className="animate-rise mx-auto mt-6 flex max-w-xl items-center gap-1.5 rounded-2xl border border-zinc-300 bg-white/90 p-1.5 pl-3 shadow-2xl shadow-cyan-500/10 ring-1 ring-black/5 backdrop-blur transition-colors sm:gap-2 sm:pl-4 focus-within:border-cyan-500/60 focus-within:ring-cyan-500/20 dark:border-white/15 dark:bg-white/10 dark:ring-white/10 dark:focus-within:border-cyan-400/60 dark:focus-within:ring-cyan-400/30"
           style={{ animationDelay: '240ms' }}
         >
-          <span aria-hidden className="shrink-0 text-lg text-cyan-300">
-            ✨
-          </span>
+          <Sparkles aria-hidden className="h-5 w-5 shrink-0 text-cyan-600 dark:text-cyan-300" />
           <input
             type="search"
             size={1}
@@ -97,7 +96,7 @@ export function HomeHero() {
             }}
             placeholder="busca o dime qué necesitas…"
             aria-label="Busca un portátil o describe lo que necesitas"
-            className="min-w-0 flex-1 bg-transparent py-2.5 text-sm text-white placeholder:text-zinc-400 focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white"
           />
           <button
             type="button"
@@ -118,7 +117,7 @@ export function HomeHero() {
               key={e}
               type="button"
               onClick={() => ask(e)}
-              className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-zinc-300 transition-colors hover:border-cyan-400/40 hover:text-white"
+              className="rounded-full border border-zinc-300 bg-white/60 px-3 py-1 text-zinc-600 transition-colors hover:border-cyan-500/50 hover:text-zinc-900 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 dark:hover:border-cyan-400/40 dark:hover:text-white"
             >
               {e}
             </button>
@@ -126,13 +125,13 @@ export function HomeHero() {
         </div>
 
         <div
-          className="animate-rise mt-5 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[11px] text-zinc-400"
+          className="animate-rise mt-5 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-[11px] text-zinc-500 dark:text-zinc-400"
           style={{ animationDelay: '400ms' }}
         >
           {['+3.800 modelos', 'precios reales', 'Acer · Lenovo · HP · MSI · ASUS · Apple'].map(
             (s, i) => (
               <span key={s} className="inline-flex items-center gap-1.5">
-                {i > 0 && <span aria-hidden className="text-zinc-600">·</span>}
+                {i > 0 && <span aria-hidden className="text-zinc-300 dark:text-zinc-600">·</span>}
                 {s}
               </span>
             ),
