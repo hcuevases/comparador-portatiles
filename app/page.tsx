@@ -100,7 +100,7 @@ export default async function Home({
 
   if (brandsErr) {
     return (
-      <main className="mx-auto max-w-5xl p-8">
+      <main className="mx-auto w-full max-w-5xl p-8">
         <ErrorBox title="Error consultando Supabase" message={brandsErr.message} />
       </main>
     );
@@ -149,7 +149,7 @@ export default async function Home({
 
   if (searchErr) {
     return (
-      <main className="mx-auto max-w-5xl p-8">
+      <main className="mx-auto w-full max-w-5xl p-8">
         <ErrorBox title="Error consultando Supabase" message={searchErr.message} />
       </main>
     );

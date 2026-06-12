@@ -59,7 +59,7 @@ export default async function CompararPage({
 
   if (ids.length < 2) {
     return (
-      <main className="mx-auto max-w-4xl p-8">
+      <main className="mx-auto w-full max-w-4xl p-8">
         <BackHome />
         <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
           <h1 className="text-lg font-medium">Necesitas al menos 2 portátiles para comparar.</h1>
@@ -102,7 +102,7 @@ export default async function CompararPage({
 
   if (lapErr) {
     return (
-      <main className="mx-auto max-w-4xl p-8">
+      <main className="mx-auto w-full max-w-4xl p-8">
         <BackHome />
         <ErrorBox title="Error consultando Supabase" message={lapErr.message} />
       </main>
@@ -158,7 +158,7 @@ export default async function CompararPage({
   );
 
   return (
-    <main className="mx-auto max-w-6xl p-4 sm:p-8">
+    <main className="mx-auto w-full max-w-6xl p-4 sm:p-8">
       <BackHome />
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
