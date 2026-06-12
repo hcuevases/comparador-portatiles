@@ -17,6 +17,7 @@ export type Database = {
       affiliate_links: {
         Row: {
           active: boolean
+          asin: string | null
           created_at: string
           id: string
           laptop_id: string
@@ -25,6 +26,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          asin?: string | null
           created_at?: string
           id?: string
           laptop_id: string
@@ -33,6 +35,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          asin?: string | null
           created_at?: string
           id?: string
           laptop_id?: string
