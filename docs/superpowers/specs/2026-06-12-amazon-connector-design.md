@@ -52,4 +52,4 @@ Rellenar en `.env.local`: `AMAZON_ACCESS_KEY`, `AMAZON_SECRET_KEY`, `AMAZON_PART
 
 ## Seguimiento
 
-Registrar **ADR-004-amazon-paapi** y la nota técnica en el vault (convención del repo) — pendiente, no incluido en este PR.
+Registrado en el vault (convención del repo, fuera de este repo): **ADR-007-amazon-paapi** + nota técnica `29-amazon-paapi`.
