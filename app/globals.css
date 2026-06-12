@@ -146,3 +146,34 @@ body {
     animation: none;
   }
 }
+
+/* ── Accesibilidad: foco de teclado visible + área táctil ≥44px ────────────── */
+/* Outline (no box-shadow ring) para que el foco se vea sobre cualquier fondo sin
+   depender de un color de offset. Usa el token --accent. */
+.a11y-tap:focus-visible,
+.a11y-hit:focus-visible {
+  /* Longhands (no shorthand): Lightning CSS pierde el var() del color al expandir
+     `outline: 2px solid var(--accent)`, dejando outline-color en currentColor. */
+  outline-width: 2px;
+  outline-style: solid;
+  outline-color: var(--accent);
+  outline-offset: 2px;
+}
+
+/* Solo en punteros gruesos (táctil): agranda el control a 44×44. En escritorio
+   (ratón) los controles siguen compactos. */
+@media (pointer: coarse) {
+  .a11y-tap {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Botones-icono diminutos (ej. quitar miniatura de la cesta): amplía el área
+     de toque a ~44px sin agrandar el control visualmente. El elemento ya está
+     posicionado (absolute), así que el ::after se ancla a él. */
+  .a11y-hit::after {
+    content: '';
+    position: absolute;
+    inset: -12px;
+  }
+}
