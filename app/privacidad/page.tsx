@@ -22,7 +22,7 @@ const ULTIMA_ACTUALIZACION = '3 de junio de 2026';
 
 export default function PrivacidadPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
+    <main className="mx-auto w-full max-w-3xl px-6 py-10">
       <nav className="mb-6 text-sm">
         <Link
           href="/"

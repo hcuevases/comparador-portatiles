@@ -250,7 +250,7 @@ export default async function LaptopDetailPage({
   }, null);
 
   return (
-    <main className="mx-auto max-w-5xl p-4 sm:p-8">
+    <main className="mx-auto w-full max-w-5xl p-4 sm:p-8">
       <nav className="mb-6 text-sm">
         <Suspense fallback={<BackToCatalogFallback />}>
           <BackToCatalog />

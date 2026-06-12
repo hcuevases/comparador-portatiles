@@ -35,7 +35,7 @@ export default async function CuentaPage({
     .select('id', { count: 'exact', head: true });
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
+    <main className="mx-auto w-full max-w-2xl p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">Tu cuenta</h1>
       </header>

@@ -38,7 +38,7 @@ export default async function MisComparativasPage({
 
   if (error) {
     return (
-      <main className="mx-auto max-w-3xl p-8">
+      <main className="mx-auto w-full max-w-3xl p-8">
         <h1 className="mb-2 text-3xl font-semibold tracking-tight">Mis comparativas</h1>
         <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
           Error consultando Supabase: {error.message}
@@ -61,7 +61,7 @@ export default async function MisComparativasPage({
   }
 
   return (
-    <main className="mx-auto max-w-3xl p-8">
+    <main className="mx-auto w-full max-w-3xl p-8">
       <header className="mb-6">
         <h1 className="text-3xl font-semibold tracking-tight">Mis comparativas</h1>
         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
