@@ -16,7 +16,7 @@ export default async function AsistentePage({
   // `?q=` viene del buscador de la home: se auto-envía como primer mensaje.
   const { q } = await searchParams;
   return (
-    <main className="mx-auto flex min-h-[80vh] max-w-3xl flex-col p-6 sm:p-8">
+    <main className="mx-auto flex min-h-[80vh] w-full max-w-3xl flex-col p-6 sm:p-8">
       <header className="mb-6">
         <h1 className="flex items-center gap-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
           <Sparkles className="h-7 w-7 shrink-0 text-cyan-500 sm:h-8 sm:w-8" aria-hidden /> Asistente IA
