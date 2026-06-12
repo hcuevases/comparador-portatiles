@@ -181,7 +181,7 @@ export function LaptopFilters({
                 onClick={() => toggleBrand(brand)}
                 aria-pressed={active}
                 className={
-                  'rounded-full border px-3 py-1 text-xs transition-colors ' +
+                  'a11y-tap inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs transition-colors ' +
                   (active
                     ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                     : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
@@ -225,7 +225,7 @@ export function LaptopFilters({
             onClick={() => setRamMin(null)}
             aria-pressed={currentRamMin === 0}
             className={
-              'rounded-full border px-3 py-1 text-xs transition-colors ' +
+              'a11y-tap inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs transition-colors ' +
               (currentRamMin === 0
                 ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                 : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
@@ -242,7 +242,7 @@ export function LaptopFilters({
                 onClick={() => setRamMin(v)}
                 aria-pressed={active}
                 className={
-                  'rounded-full border px-3 py-1 text-xs transition-colors ' +
+                  'a11y-tap inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs transition-colors ' +
                   (active
                     ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                     : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
@@ -264,7 +264,7 @@ export function LaptopFilters({
             onClick={() => setScreen(null)}
             aria-pressed={currentScreen === ''}
             className={
-              'rounded-full border px-3 py-1 text-xs transition-colors ' +
+              'a11y-tap inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs transition-colors ' +
               (currentScreen === ''
                 ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                 : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
@@ -281,7 +281,7 @@ export function LaptopFilters({
                 onClick={() => setScreen(key)}
                 aria-pressed={active}
                 className={
-                  'rounded-full border px-3 py-1 text-xs transition-colors ' +
+                  'a11y-tap inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs transition-colors ' +
                   (active
                     ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                     : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
@@ -303,7 +303,7 @@ export function LaptopFilters({
             onClick={() => setCond(null)}
             aria-pressed={currentCond === ''}
             className={
-              'rounded-full border px-3 py-1 text-xs transition-colors ' +
+              'a11y-tap inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs transition-colors ' +
               (currentCond === ''
                 ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                 : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
@@ -320,7 +320,7 @@ export function LaptopFilters({
                 onClick={() => setCond(key)}
                 aria-pressed={active}
                 className={
-                  'rounded-full border px-3 py-1 text-xs transition-colors ' +
+                  'a11y-tap inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs transition-colors ' +
                   (active
                     ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                     : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')
@@ -346,7 +346,7 @@ export function LaptopFilters({
                 onClick={() => toggleFlag(key)}
                 aria-pressed={active}
                 className={
-                  'rounded-full border px-3 py-1 text-xs transition-colors ' +
+                  'a11y-tap inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs transition-colors ' +
                   (active
                     ? 'border-cyan-500 bg-cyan-50 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300'
                     : 'border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900')

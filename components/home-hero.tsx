@@ -117,7 +117,7 @@ export function HomeHero() {
               key={e}
               type="button"
               onClick={() => ask(e)}
-              className="rounded-full border border-zinc-300 bg-white/60 px-3 py-1 text-zinc-600 transition-colors hover:border-cyan-500/50 hover:text-zinc-900 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 dark:hover:border-cyan-400/40 dark:hover:text-white"
+              className="a11y-tap inline-flex items-center justify-center rounded-full border border-zinc-300 bg-white/60 px-3 py-1 text-zinc-600 transition-colors hover:border-cyan-500/50 hover:text-zinc-900 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300 dark:hover:border-cyan-400/40 dark:hover:text-white"
             >
               {e}
             </button>

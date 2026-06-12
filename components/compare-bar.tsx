@@ -108,7 +108,7 @@ function Thumb({ item, onRemove }: { item: CompareItem; onRemove: () => void }) 
         onClick={onRemove}
         aria-label={`Quitar ${item.brand} ${item.model}`}
         title="Quitar"
-        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-200 bg-white text-xs leading-none text-zinc-500 shadow-sm transition-colors hover:bg-red-500 hover:text-white dark:border-zinc-700 dark:bg-zinc-900"
+        className="a11y-hit absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-200 bg-white text-xs leading-none text-zinc-500 shadow-sm transition-colors hover:bg-red-500 hover:text-white dark:border-zinc-700 dark:bg-zinc-900"
       >
         ×
       </button>
