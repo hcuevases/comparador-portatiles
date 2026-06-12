@@ -79,7 +79,7 @@ export function LaptopGrid({
                     : 'Añadir a comparar'
               }
               className={
-                'absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border text-sm font-bold shadow-sm backdrop-blur transition-all ' +
+                'a11y-tap absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border text-sm font-bold shadow-sm backdrop-blur transition-all ' +
                 (selected
                   ? 'border-cyan-500 bg-cyan-500 text-white shadow-cyan-500/30'
                   : 'border-zinc-200 bg-white/80 text-zinc-400 hover:border-cyan-400 hover:text-cyan-600 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-500 dark:hover:text-cyan-400') +
