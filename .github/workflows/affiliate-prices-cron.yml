@@ -1,0 +1,69 @@
+# Cron diario que acumula prices_history de los retailers de afiliación (Amazon,
+# MediaMarkt, El Corte Inglés). Cada punto diario alimenta el gráfico de histórico
+# de la ficha (una línea por retailer) y la detección de bajadas de precio.
+#
+# A diferencia de enrich-specs (Cloudflare → solo local), estos conectores van contra
+# APIs de afiliación (PA-API, Tradedoubler, Awin) que SÍ admiten IPs de datacenter, así
+# que corren bien en Actions.
+#
+# GATEADO: cada paso solo corre si están sus secrets. Mientras no se den de alta las
+# cuentas, los pasos se saltan (el workflow termina en verde sin hacer nada). Para
+# activar cada retailer, añadir sus secrets en Settings → Secrets and variables → Actions:
+#   Amazon:        AMAZON_ACCESS_KEY, AMAZON_SECRET_KEY, AMAZON_PARTNER_TAG
+#   MediaMarkt:    TRADEDOUBLER_TOKEN, TRADEDOUBLER_FEED_ID
+#   El Corte Inglés: AWIN_API_KEY, AWIN_FEED_ID
+# (NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY ya existen para prices-cron.)
+name: Refrescar precios de afiliados (diario)
+
+on:
+  schedule:
+    # 07:00 UTC: una hora después de prices-cron (PcComponentes) para no solaparse.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: affiliate-prices-cron
+  cancel-in-progress: true
+
+jobs:
+  refresh-affiliate-prices:
+    name: Refrescar prices_history (afiliados)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      AMAZON_ACCESS_KEY: ${{ secrets.AMAZON_ACCESS_KEY }}
+      AMAZON_SECRET_KEY: ${{ secrets.AMAZON_SECRET_KEY }}
+      AMAZON_PARTNER_TAG: ${{ secrets.AMAZON_PARTNER_TAG }}
+      TRADEDOUBLER_TOKEN: ${{ secrets.TRADEDOUBLER_TOKEN }}
+      TRADEDOUBLER_FEED_ID: ${{ secrets.TRADEDOUBLER_FEED_ID }}
+      AWIN_API_KEY: ${{ secrets.AWIN_API_KEY }}
+      AWIN_FEED_ID: ${{ secrets.AWIN_FEED_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # Cada conector se salta si faltan sus credenciales; continue-on-error para que
+      # un fallo transitorio de una API no tumbe a los demás. El --limit acota cuántos
+      # portátiles se consultan por corrida (ajustar al ver los rate limits reales).
+      - name: Amazon (PA-API)
+        if: ${{ env.AMAZON_ACCESS_KEY != '' && env.AMAZON_SECRET_KEY != '' && env.AMAZON_PARTNER_TAG != '' }}
+        continue-on-error: true
+        run: npm run enrich:amazon -- --limit 1000
+
+      - name: MediaMarkt (Tradedoubler)
+        if: ${{ env.TRADEDOUBLER_TOKEN != '' && env.TRADEDOUBLER_FEED_ID != '' }}
+        continue-on-error: true
+        run: npm run enrich:mediamarkt -- --limit 1000
+
+      - name: El Corte Inglés (Awin feed)
+        if: ${{ env.AWIN_API_KEY != '' && env.AWIN_FEED_ID != '' }}
+        continue-on-error: true
+        run: npm run enrich:elcorteingles -- --limit 5000
