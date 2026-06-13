@@ -72,6 +72,9 @@ const { values: args } = parseArgs({
     // usuarios cuyos modelos hayan bajado del precio de suscripción. No ingesta
     // nada; se corre como paso aparte tras el refresco de precios.
     'check-alerts': { type: 'boolean', default: false },
+    // Marca como descatalogados (soft-hide) los portátiles sin precio reciente de
+    // NINGÚN retailer (desaparecidos). No ingesta; se corre tras el refresco de precios.
+    prune: { type: 'boolean', default: false },
   },
 });
 
@@ -83,6 +86,7 @@ const PRICES_ONLY = args['prices-only'];
 const EAN_ONLY = args['ean-only'];
 const BY_BRAND = args['by-brand'];
 const CHECK_ALERTS = args['check-alerts'];
+const PRUNE = args.prune;
 
 if (!Number.isFinite(LIMIT) || LIMIT < 1) {
   throw new Error('--limit debe ser un número positivo');
@@ -882,6 +886,20 @@ async function main() {
   }
   if (CHECK_ALERTS) {
     await checkAlerts();
+    return;
+  }
+  if (PRUNE) {
+    // Soft-hide de desaparecidos: la RPC marca discontinued_at los sin precio reciente
+    // (de cualquier retailer) y restaura los que volvieron. Ver migración 0028.
+    const { data, error } = await supabase.rpc('prune_discontinued', { p_days: 14 });
+    if (error) {
+      console.error('💥 Error en prune_discontinued:', error.message);
+      process.exit(1);
+    }
+    const row = Array.isArray(data) ? data[0] : data;
+    console.log(
+      `🧹 Catálogo: ${row?.discontinued ?? 0} descatalogados, ${row?.restored ?? 0} restaurados.`,
+    );
     return;
   }
 
