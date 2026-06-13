@@ -86,7 +86,15 @@ export function parseAwinFeed(csv: string): AwinFeedRow[] {
   const priceCol = findCol(header, ['search_price', 'store_price', 'price', 'display_price']);
   const urlCol = findCol(header, ['aw_deep_link', 'deep_link', 'awdeeplink']);
   const stockCol = findCol(header, ['in_stock', 'stock_status', 'availability']);
+  // Columnas para el modo descubrimiento (opcionales).
+  const nameCol = findCol(header, ['product_name', 'product_short_description', 'name']);
+  const brandCol = findCol(header, ['brand_name', 'brand']);
+  const catCol = findCol(header, ['merchant_category', 'category_name', 'category', 'categories']);
+  const imgCol = findCol(header, ['merchant_image_url', 'aw_image_url', 'image_url']);
   if (eanCol === -1 || urlCol === -1) return [];
+
+  const cell = (cells: string[], i: number): string | null =>
+    i === -1 ? null : (cells[i] ?? '').trim() || null;
 
   const out: AwinFeedRow[] = [];
   for (let r = 1; r < table.length; r++) {
@@ -99,6 +107,10 @@ export function parseAwinFeed(csv: string): AwinFeedRow[] {
       url,
       priceEur: priceCol === -1 ? null : parsePrice(cells[priceCol] ?? ''),
       inStock: stockCol === -1 ? null : parseStock(cells[stockCol] ?? ''),
+      name: cell(cells, nameCol),
+      brand: cell(cells, brandCol),
+      category: cell(cells, catCol),
+      imageUrl: cell(cells, imgCol),
     });
   }
   return out;

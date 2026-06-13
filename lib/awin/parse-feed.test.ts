@@ -35,8 +35,25 @@ describe('parseAwinFeed', () => {
       priceEur: 1199,
       url: 'https://www.awin1.com/cread.php?awinmid=13075&awinaffid=PUB&ued=https%3A%2F%2Feci%2Fa',
       inStock: true,
+      name: 'Portátil A',
+      brand: null,
+      category: null,
+      imageUrl: null,
     });
     expect(rows[1]).toMatchObject({ ean: '0000000000000', priceEur: null, inStock: false });
+  });
+
+  it('mapea columnas de descubrimiento (brand/category/image) cuando vienen', () => {
+    const disc = [
+      'ean,search_price,aw_deep_link,brand_name,merchant_category,merchant_image_url,product_name',
+      '111,899.00,https://a,Acer,Informática > Portátiles,https://img/a.jpg,"Acer Aspire 5"',
+    ].join('\n');
+    expect(parseAwinFeed(disc)[0]).toMatchObject({
+      brand: 'Acer',
+      category: 'Informática > Portátiles',
+      imageUrl: 'https://img/a.jpg',
+      name: 'Acer Aspire 5',
+    });
   });
 
   it('devuelve [] si faltan columnas clave (ean o deeplink)', () => {

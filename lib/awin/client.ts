@@ -18,7 +18,18 @@ export function configFromEnv(): AwinConfig | null {
 }
 
 // Columnas que pedimos en la descarga (las imprescindibles + un par informativas).
-const COLUMNS = ['ean', 'search_price', 'aw_deep_link', 'in_stock', 'product_name'].join(',');
+// Columnas pedidas: las imprescindibles + las que usa el modo descubrimiento
+// (brand/categoría/imagen) para crear laptops nuevos.
+const COLUMNS = [
+  'ean',
+  'search_price',
+  'aw_deep_link',
+  'in_stock',
+  'product_name',
+  'brand_name',
+  'merchant_category',
+  'merchant_image_url',
+].join(',');
 
 /**
  * Descarga el feed de producto de El Corte Inglés y devuelve el CSV ya descomprimido.

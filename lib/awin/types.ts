@@ -5,4 +5,10 @@ export type AwinFeedRow = {
   priceEur: number | null;
   url: string; // aw_deep_link: enlace de afiliado ya generado para tu cuenta
   inStock: boolean | null;
+  // Campos para el modo descubrimiento (crear laptops nuevos). Solo se rellenan si el
+  // feed trae esas columnas; si no, quedan null.
+  name: string | null;
+  brand: string | null;
+  category: string | null;
+  imageUrl: string | null;
 };
