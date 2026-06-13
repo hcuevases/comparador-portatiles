@@ -1,16 +1,15 @@
 /**
  * Conector de Amazon vía Product Advertising API 5.0 (PA-API).
  *
- * Añade Amazon como SEGUNDA fuente de precio + enlace de afiliado para portátiles que YA
- * existen en el catálogo, casándolos por EAN (laptops.ean ↔ PA-API). NO crea productos
- * nuevos: si el EAN no está ya en BD, se ignora.
+ * Añade Amazon como fuente de precio + enlace de afiliado para portátiles que YA existen en
+ * el catálogo, casándolos por EAN (laptops.ean ↔ PA-API). NO crea productos: si el EAN no
+ * está ya en BD, se ignora.
  *
  * Flujo por portátil:
  *   1. Si ya hay ASIN cacheado en affiliate_links → GetItems(ASIN) directo.
- *      Si no → SearchItems(Keywords=EAN) y se elige el item cuyo EAN coincide; se cachea
- *      el ASIN para la próxima vez (rate limit de PA-API ~1 req/s).
- *   2. Mapea la oferta (lib/amazon/map-item) y hace upsert de affiliate_links + un punto
- *      en prices_history (solo si el precio está en EUR).
+ *      Si no → SearchItems(Keywords=EAN) y se elige el item cuyo EAN coincide; se cachea el
+ *      ASIN para la próxima vez (rate limit de PA-API ~1 req/s).
+ *   2. Mapea la oferta (lib/amazon/map-item) y escribe vía upsertOffer (compartido).
  *
  * Uso:
  *   npm run enrich:amazon -- --mock --dry-run        # prueba el pipeline SIN credenciales
@@ -18,16 +17,12 @@
  *   npm run enrich:amazon -- --limit 50 --dry-run    # 50 sin escribir
  *
  * Env (de .env.local) — PENDIENTE de cuenta de Amazon Associates aprobada:
- *   AMAZON_ACCESS_KEY      Access Key de PA-API
- *   AMAZON_SECRET_KEY      Secret Key de PA-API
- *   AMAZON_PARTNER_TAG     tag de afiliado (p.ej. mitienda-21)
- *   AMAZON_HOST            (opcional) default webservices.amazon.es
- *   AMAZON_REGION          (opcional) default eu-west-1
- *   AMAZON_MARKETPLACE     (opcional) default www.amazon.es
+ *   AMAZON_ACCESS_KEY, AMAZON_SECRET_KEY, AMAZON_PARTNER_TAG
+ *   AMAZON_HOST (opc. webservices.amazon.es), AMAZON_REGION (opc. eu-west-1),
+ *   AMAZON_MARKETPLACE (opc. www.amazon.es)
  *   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  *
- * Sin las tres credenciales de Amazon solo se puede correr con --mock (datos de ejemplo);
- * --mock fuerza dry-run para no escribir ofertas falsas en producción.
+ * Sin credenciales solo corre con --mock; --mock fuerza dry-run.
  */
 
 import { parseArgs } from 'node:util';
@@ -40,7 +35,9 @@ import { configFromEnv, getItemsByAsin, searchItemsByEan, type AmazonConfig } fr
 import { mapItem, pickItemByEan } from '@/lib/amazon/map-item';
 import { mockSearchResponse } from '@/lib/amazon/mock';
 import type { PaapiItem } from '@/lib/amazon/types';
-import type { Database, TablesInsert } from '@/lib/supabase/database.types';
+import { getOrCreateRetailer, loadEanTargets, type EanTarget } from '@/lib/connectors/db';
+import { upsertOffer } from '@/lib/connectors/upsert-offer';
+import type { Database } from '@/lib/supabase/database.types';
 
 loadEnv({ path: '.env.local' });
 
@@ -59,10 +56,6 @@ const MOCK = args.mock;
 const DRY_RUN = args['dry-run'] || MOCK;
 const DELAY = Number(args.delay);
 
-const RETAILER_SLUG = 'amazon';
-const RETAILER_NAME = 'Amazon';
-const RETAILER_BASE = 'https://www.amazon.es';
-
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!supabaseUrl || !serviceKey) {
@@ -72,39 +65,7 @@ const supabase = createClient<Database>(supabaseUrl, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-type LaptopRow = { id: string; brand: string; model: string; ean: string | null };
 type LinkRow = { laptop_id: string; asin: string | null };
-
-async function getOrCreateRetailerId(partnerTag: string | null): Promise<string> {
-  const { data } = await supabase.from('retailers').select('id').eq('slug', RETAILER_SLUG).maybeSingle();
-  if (data) {
-    if (partnerTag) await supabase.from('retailers').update({ affiliate_id: partnerTag }).eq('id', data.id);
-    return data.id;
-  }
-  const payload: TablesInsert<'retailers'> = {
-    slug: RETAILER_SLUG,
-    name: RETAILER_NAME,
-    base_url: RETAILER_BASE,
-    affiliate_id: partnerTag,
-    active: true,
-  };
-  const { data: created, error } = await supabase.from('retailers').insert([payload]).select('id').single();
-  if (error) throw error;
-  return created.id;
-}
-
-// Portátiles nuevos (no reacondicionados) con EAN: la clave para casar con Amazon.
-async function loadTargets(): Promise<LaptopRow[]> {
-  const { data, error } = await supabase
-    .from('laptops')
-    .select('id, brand, model, ean')
-    .not('ean', 'is', null)
-    .eq('refurbished', false)
-    .limit(LIMIT)
-    .returns<LaptopRow[]>();
-  if (error) throw new Error(error.message);
-  return data ?? [];
-}
 
 // ASIN ya cacheado por portátil (enlace de Amazon previo), para usar GetItems directo.
 async function loadAsinCache(retailerId: string, laptopIds: string[]): Promise<Map<string, string>> {
@@ -122,21 +83,20 @@ async function loadAsinCache(retailerId: string, laptopIds: string[]): Promise<M
 
 async function resolveItem(
   cfg: AmazonConfig | null,
-  laptop: LaptopRow,
+  laptop: EanTarget,
   cachedAsin: string | undefined,
 ): Promise<PaapiItem | null> {
-  const ean = laptop.ean!;
   if (MOCK) {
-    return pickItemByEan(mockSearchResponse(ean).SearchResult?.Items ?? [], ean);
+    return pickItemByEan(mockSearchResponse(laptop.ean).SearchResult?.Items ?? [], laptop.ean);
   }
   if (cachedAsin) {
     const items = await getItemsByAsin(cfg!, [cachedAsin]);
     await sleep(DELAY);
     return items[0] ?? null;
   }
-  const items = await searchItemsByEan(cfg!, ean);
+  const items = await searchItemsByEan(cfg!, laptop.ean);
   await sleep(DELAY);
-  return pickItemByEan(items, ean);
+  return pickItemByEan(items, laptop.ean);
 }
 
 async function main(): Promise<void> {
@@ -153,9 +113,16 @@ async function main(): Promise<void> {
       (cfg ? ` · marketplace ${cfg.marketplace}` : ' · SIN credenciales (mock)'),
   );
 
-  const retailerId = DRY_RUN ? 'dry-run' : await getOrCreateRetailerId(cfg!.partnerTag);
+  const retailerId = DRY_RUN
+    ? 'dry-run'
+    : await getOrCreateRetailer(supabase, {
+        slug: 'amazon',
+        name: 'Amazon',
+        baseUrl: 'https://www.amazon.es',
+        affiliateId: cfg!.partnerTag,
+      });
 
-  const targets = await loadTargets();
+  const targets = await loadEanTargets(supabase, LIMIT);
   console.log(`   ${targets.length} portátil(es) con EAN a consultar.`);
   if (targets.length === 0) return;
 
@@ -168,10 +135,6 @@ async function main(): Promise<void> {
   let noMatch = 0;
   for (const [i, laptop] of targets.entries()) {
     const tag = `[${i + 1}/${targets.length}] ${laptop.brand} ${laptop.model}`;
-    if (!laptop.ean) {
-      noMatch++;
-      continue;
-    }
     let item: PaapiItem | null;
     try {
       item = await resolveItem(cfg, laptop, cache.get(laptop.id));
@@ -198,32 +161,15 @@ async function main(): Promise<void> {
       continue;
     }
 
-    const link: TablesInsert<'affiliate_links'> = {
-      laptop_id: laptop.id,
-      retailer_id: retailerId,
+    const r = await upsertOffer(supabase, laptop.id, retailerId, {
       url: offer.url,
+      priceEur: offer.priceEur,
+      inStock: offer.inStock,
       asin: offer.asin,
-      active: true,
-    };
-    const { error: linkErr } = await supabase
-      .from('affiliate_links')
-      .upsert([link], { onConflict: 'laptop_id,retailer_id' });
-    if (linkErr) {
-      console.log(`   ✗ affiliate_link: ${linkErr.message}`);
-      continue;
-    }
-
-    if (offer.priceEur != null) {
-      const price: TablesInsert<'prices_history'> = {
-        laptop_id: laptop.id,
-        retailer_id: retailerId,
-        price_eur: offer.priceEur,
-        in_stock: offer.inStock,
-      };
-      const { error: priceErr } = await supabase.from('prices_history').insert([price]);
-      if (priceErr) console.log(`   ✗ price: ${priceErr.message}`);
-      else priced++;
-    }
+    });
+    if (r.linkError) console.log(`   ✗ affiliate_link: ${r.linkError}`);
+    else if (r.priceError) console.log(`   ✗ price: ${r.priceError}`);
+    else if (r.priced) priced++;
   }
 
   console.log(`\n✅ Hecho: ${ok} con oferta, ${priced} con precio, ${noMatch} sin match.`);
