@@ -43,6 +43,14 @@ jobs:
         # tope de seguridad; el bucle para cuando se agotan las marcas.
         run: npm run scrape:catalog -- --prices-only --by-brand --limit 10000
 
+      - name: Descatalogar desaparecidos (soft-hide)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        # Tras refrescar precios: marca discontinued_at los portátiles sin precio
+        # reciente de NINGÚN retailer (>14 días). Soft-hide reversible (ver 0028).
+        run: npm run scrape:catalog -- --prune
+
       - name: Comprobar alertas de bajada de precio
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
