@@ -15,7 +15,9 @@
     "scrape:catalog": "tsx scripts/scrape-catalog.ts",
     "enrich:specs": "tsx scripts/enrich-specs.ts",
     "enrich:benchmarks": "tsx scripts/enrich-benchmarks.ts",
-    "enrich:amazon": "tsx scripts/enrich-amazon.ts"
+    "enrich:amazon": "tsx scripts/enrich-amazon.ts",
+    "enrich:mediamarkt": "tsx scripts/enrich-mediamarkt.ts",
+    "enrich:elcorteingles": "tsx scripts/enrich-elcorteingles.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.80",
