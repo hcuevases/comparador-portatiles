@@ -196,6 +196,7 @@ export type Database = {
           brand: string
           created_at: string
           description: string | null
+          discontinued_at: string | null
           ean: string | null
           id: string
           image_url: string | null
@@ -210,6 +211,7 @@ export type Database = {
           brand: string
           created_at?: string
           description?: string | null
+          discontinued_at?: string | null
           ean?: string | null
           id?: string
           image_url?: string | null
@@ -224,6 +226,7 @@ export type Database = {
           brand?: string
           created_at?: string
           description?: string | null
+          discontinued_at?: string | null
           ean?: string | null
           id?: string
           image_url?: string | null
@@ -473,6 +476,13 @@ export type Database = {
         Returns: {
           n: number
           product_line: string
+        }[]
+      }
+      prune_discontinued: {
+        Args: { p_days?: number }
+        Returns: {
+          discontinued: number
+          restored: number
         }[]
       }
       search_laptops: {
