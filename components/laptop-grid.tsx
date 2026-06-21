@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 
 import { pccThumb } from '@/lib/images';
-import { buildSeriesChips, type SeriesChipInput } from '@/lib/series-chips';
+import { buildSeriesChips, formatStorage, shortCpu, type SeriesChipInput } from '@/lib/series-chips';
 import { LaptopCardItem, formatEur } from '@/components/laptop-card-item';
 import type { SeriesConfigRow } from '@/app/api/series/configs/route';
 
@@ -170,9 +170,9 @@ function SeriesGroupCard({ series, backQuery }: { series: SeriesCard; backQuery?
 // Chips de una configuración concreta (valores únicos, no rango).
 function buildConfigChips(c: SeriesConfigRow): string[] {
   const chips: string[] = [];
-  if (c.cpu) chips.push(c.cpu.replace(/^(Intel|AMD|Apple)\s+/i, '').slice(0, 22));
+  if (c.cpu) chips.push(shortCpu(c.cpu));
   if (c.ram_gb !== null) chips.push(`${c.ram_gb} GB RAM`);
-  if (c.storage_gb !== null) chips.push(`${c.storage_gb} GB SSD`);
+  if (c.storage_gb !== null) chips.push(`${formatStorage(c.storage_gb)} SSD`);
   if (c.screen_inches !== null) chips.push(`${c.screen_inches}″`);
   return chips;
 }

@@ -42,6 +42,9 @@ export async function GET(request: Request): Promise<Response> {
   const priceMax = Number(p.get('price_max')) || undefined;
 
   const supabase = await createClient();
+  // Nota: refresh_min/weight_max/vram_min/battery_min NO se reenvían porque la home
+  // (laptop-filters.tsx) no los expone hoy. Si se añaden a la UI, hay que pasarlos
+  // aquí también para que la lista expandida sea coherente con el grid.
   const { data, error } = await supabase
     .rpc('series_configs', {
       p_brand: brand,

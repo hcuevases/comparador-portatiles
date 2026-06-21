@@ -21,7 +21,7 @@ export function formatStorage(gb: number): string {
 }
 
 // "Intel Core i7-1355U" → "Core i7-1355U" (quita el fabricante para que quepa).
-function shortCpu(cpu: string): string {
+export function shortCpu(cpu: string): string {
   return cpu.replace(/^(Intel|AMD|Apple)\s+/i, '').slice(0, 22);
 }
 
