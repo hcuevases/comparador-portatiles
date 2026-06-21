@@ -203,6 +203,8 @@ export type Database = {
           model: string
           mpn: string | null
           refurbished: boolean
+          series_key: string | null
+          series_locked: boolean
           slug: string
           updated_at: string
           year: number | null
@@ -218,6 +220,8 @@ export type Database = {
           model: string
           mpn?: string | null
           refurbished?: boolean
+          series_key?: string | null
+          series_locked?: boolean
           slug: string
           updated_at?: string
           year?: number | null
@@ -233,6 +237,8 @@ export type Database = {
           model?: string
           mpn?: string | null
           refurbished?: boolean
+          series_key?: string | null
+          series_locked?: boolean
           slug?: string
           updated_at?: string
           year?: number | null
@@ -458,6 +464,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      compute_series_key: { Args: { p_model: string }; Returns: string }
       current_min_prices: {
         Args: { p_ids: string[] }
         Returns: {
@@ -508,12 +515,55 @@ export type Database = {
         }
         Returns: {
           brand: string
+          config_count: number
+          cpus: string[]
           id: string
           image_url: string
           min_price: number
           model: string
+          ram_max: number
+          ram_min: number
+          rep_cpu: string
+          screen_max: number
+          screen_min: number
+          series_key: string
           slug: string
+          storage_max: number
+          storage_min: number
           total_count: number
+          year: number
+        }[]
+      }
+      series_configs: {
+        Args: {
+          p_ai?: boolean
+          p_battery_min?: number
+          p_brand: string
+          p_gaming?: boolean
+          p_oled?: boolean
+          p_price_max?: number
+          p_product_line?: string
+          p_q?: string
+          p_ram_min?: number
+          p_refresh_min?: number
+          p_refurbished?: boolean
+          p_screen_max?: number
+          p_screen_min?: number
+          p_series_key: string
+          p_vram_min?: number
+          p_weight_max?: number
+        }
+        Returns: {
+          brand: string
+          cpu: string
+          id: string
+          image_url: string
+          min_price: number
+          model: string
+          ram_gb: number
+          screen_inches: number
+          slug: string
+          storage_gb: number
           year: number
         }[]
       }
