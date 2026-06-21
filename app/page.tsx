@@ -3,29 +3,32 @@ import Link from 'next/link';
 
 import { HomeHero } from '@/components/home-hero';
 import { LaptopFilters } from '@/components/laptop-filters';
-import { LaptopGrid, type LaptopCard } from '@/components/laptop-grid';
+import { LaptopGrid, type SeriesCard } from '@/components/laptop-grid';
 import { Pagination } from '@/components/pagination';
 import { SortSelect } from '@/components/sort-select';
-import type { Tables } from '@/lib/supabase/database.types';
 import { createClient } from '@/lib/supabase/server';
 
-// Derivados del esquema generado por `supabase gen types`. Si una columna
-// cambia, TS revienta aquí — no hay que sincronizar tipos a mano.
-type SpecRow = Pick<
-  Tables<'specs'>,
-  'laptop_id' | 'cpu' | 'ram_gb' | 'storage_gb' | 'screen_inches' | 'weight_kg'
->;
-
-// Filas que devuelve la RPC `search_laptops`: catálogo + min de precio agregado
-// en SQL + total filtrado (count window). Ver db/migrations/0008_search_laptops_rpc.sql.
+// Filas que devuelve la RPC `search_laptops` agrupada por serie: una fila por
+// series_key en lugar de una por laptop. Agrega rangos de specs y cuenta de
+// configuraciones. Ver db/migrations/ (migración que añade el agrupado).
 type SearchRow = {
   id: string;
   slug: string;
   brand: string;
   model: string;
+  series_key: string | null;
   year: number | null;
   image_url: string | null;
   min_price: number | null;
+  config_count: number;
+  ram_min: number | null;
+  ram_max: number | null;
+  storage_min: number | null;
+  storage_max: number | null;
+  screen_min: number | null;
+  screen_max: number | null;
+  cpus: string[] | null;
+  rep_cpu: string | null;
   total_count: number;
 };
 
@@ -156,17 +159,6 @@ export default async function Home({
   }
 
   const laptops = rows ?? [];
-  const ids = laptops.map((l) => l.id);
-
-  // Specs solo de la página actual (≤ PAGE_SIZE ids) para pintar las cards.
-  const { data: specsData } = await supabase
-    .from('specs')
-    .select('laptop_id, cpu, ram_gb, storage_gb, screen_inches, weight_kg')
-    .in('laptop_id', ids)
-    .returns<SpecRow[]>();
-
-  const specsByLaptop = new Map<string, SpecRow>();
-  for (const s of specsData ?? []) specsByLaptop.set(s.laptop_id, s);
 
   // El total filtrado viaja en cada fila (count(*) over()); en una página válida
   // siempre hay ≥ 1 fila. Solo es 0 cuando no hay resultados.
@@ -175,7 +167,6 @@ export default async function Home({
 
   return renderPage(
     laptops,
-    specsByLaptop,
     allBrands,
     productLines,
     totalCount,
@@ -189,7 +180,6 @@ export default async function Home({
 
 function renderPage(
   laptops: SearchRow[],
-  specsByLaptop: Map<string, SpecRow>,
   allBrands: string[],
   productLines: { value: string; count: number }[],
   totalCount: number,
@@ -199,15 +189,26 @@ function renderPage(
   catalogQuery: string,
   message?: string,
 ) {
-  const cards: LaptopCard[] = laptops.map((l) => ({
+  const cards: SeriesCard[] = laptops.map((l) => ({
     id: l.id,
     slug: l.slug,
     brand: l.brand,
     model: l.model,
+    seriesKey: l.series_key,
     year: l.year,
     image_url: l.image_url,
-    specs: specsByLaptop.get(l.id) ?? null,
     minPriceEur: l.min_price,
+    configCount: Number(l.config_count),
+    chipInput: {
+      ramMin: l.ram_min,
+      ramMax: l.ram_max,
+      storageMin: l.storage_min,
+      storageMax: l.storage_max,
+      screenMin: l.screen_min,
+      screenMax: l.screen_max,
+      cpus: l.cpus ?? [],
+      repCpu: l.rep_cpu,
+    },
   }));
 
   return (
@@ -240,7 +241,7 @@ function renderPage(
             <p className="text-xs text-zinc-500">
               {totalCount === 0
                 ? 'Sin resultados con los filtros actuales.'
-                : `${totalCount} ${totalCount === 1 ? 'portátil' : 'portátiles'} en total · página ${currentPage} de ${totalPages}`}
+                : `${totalCount} ${totalCount === 1 ? 'serie' : 'series'} · página ${currentPage} de ${totalPages}`}
             </p>
             {totalCount > 0 && <SortSelect />}
           </div>
