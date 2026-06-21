@@ -16,15 +16,28 @@ function catalogClient() {
   });
 }
 
-// Lo que devuelve search_laptops (ver db/migrations/0018). Mismo shape que la home.
+// Lo que devuelve search_laptops desde la migración 0030: UNA fila por SERIE, donde
+// `id`/`slug`/`model` son los del representante (la config más barata que cumple el
+// filtro) y `config_count` cuántas configuraciones tiene esa serie. Mismo shape que
+// consume la home. Solo usamos un subconjunto aquí.
 type SearchRow = {
   id: string;
   slug: string;
   brand: string;
   model: string;
+  series_key: string | null;
   year: number | null;
   image_url: string | null;
   min_price: number | null;
+  config_count: number;
+  ram_min: number | null;
+  ram_max: number | null;
+  storage_min: number | null;
+  storage_max: number | null;
+  screen_min: number | null;
+  screen_max: number | null;
+  cpus: string[] | null;
+  rep_cpu: string | null;
   total_count: number;
 };
 
@@ -72,12 +85,16 @@ export type RecoLaptop = {
   year: number | null;
   image_url: string | null;
   minPriceEur: number | null;
+  // Nº de configuraciones de la serie de este modelo (1 = config única). El asistente
+  // lo usa para mencionar la variedad disponible; la tarjeta del chat muestra la config
+  // concreta recomendada.
+  configCount: number;
   specs: RecoSpecs | null;
 };
 
 export const buscarPortatiles = tool({
   description:
-    'Busca portátiles REALES del catálogo según las necesidades del usuario. Devuelve modelos con su precio ACTUAL y specs clave. Úsala SIEMPRE antes de recomendar — no inventes modelos ni precios. Combina los filtros que apliquen.',
+    'Busca portátiles REALES del catálogo según las necesidades del usuario. Devuelve UN resultado por MODELO (la configuración más barata que cumple los filtros), con su precio ACTUAL y specs clave. El campo `configCount` indica en cuántas configuraciones distintas está disponible ese modelo; si es >1, menciónalo (p.ej. "disponible en 12 configuraciones, desde X€"). Úsala SIEMPRE antes de recomendar — no inventes modelos ni precios. Combina los filtros que apliquen.',
   inputSchema: z.object({
     q: z.string().optional().describe('Texto libre: marca, modelo o serie (ej: "ThinkPad", "MacBook Air").'),
     brands: z.array(z.string()).optional().describe('Marcas exactas (ej: ["Lenovo","HP"]).'),
@@ -156,6 +173,7 @@ export const buscarPortatiles = tool({
           year: l.year,
           image_url: l.image_url,
           minPriceEur: l.min_price,
+          configCount: Number(l.config_count),
           specs: s
             ? {
                 cpu: s.cpu,
