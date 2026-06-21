@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { escapeIlike } from '@/lib/escape-ilike';
 import { createClient } from '@/lib/supabase/server';
 
 // Configuraciones de una serie, para el expandir inline del grid. Reaplica los
@@ -34,6 +35,7 @@ export async function GET(request: Request): Promise<Response> {
     return NextResponse.json({ error: 'brand y series son obligatorios' }, { status: 400 });
   }
 
+  const q = p.get('q')?.trim();
   const refurbished = p.get('cond') === 'nuevos' ? false : p.get('cond') === 'reacond' ? true : undefined;
   const screen = SCREEN_BUCKETS[p.get('screen') ?? ''];
   const ramMin = Number(p.get('ram_min')) || 0;
@@ -44,7 +46,7 @@ export async function GET(request: Request): Promise<Response> {
     .rpc('series_configs', {
       p_brand: brand,
       p_series_key: series,
-      p_q: p.get('q')?.trim() || undefined,
+      p_q: q ? escapeIlike(q) : undefined,
       p_ram_min: ramMin,
       p_price_max: priceMax,
       p_gaming: p.get('gaming') === '1',

@@ -6,6 +6,7 @@ import { LaptopFilters } from '@/components/laptop-filters';
 import { LaptopGrid, type SeriesCard } from '@/components/laptop-grid';
 import { Pagination } from '@/components/pagination';
 import { SortSelect } from '@/components/sort-select';
+import { escapeIlike } from '@/lib/escape-ilike';
 import { createClient } from '@/lib/supabase/server';
 
 // Filas que devuelve la RPC `search_laptops` agrupada por serie: una fila por
@@ -289,14 +290,6 @@ function ErrorBox({ title, message }: { title: string; message: string }) {
       <pre className="mt-2 whitespace-pre-wrap text-xs">{message}</pre>
     </div>
   );
-}
-
-/**
- * Escapa los caracteres especiales de ILIKE (% y _) para que el usuario no
- * pueda inyectar comodines accidentalmente al teclear.
- */
-function escapeIlike(input: string): string {
-  return input.replace(/[%_\\]/g, (m) => `\\${m}`);
 }
 
 /**
