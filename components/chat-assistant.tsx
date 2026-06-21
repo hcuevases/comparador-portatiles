@@ -9,8 +9,10 @@ import type { RecomendadorUIMessage } from '@/lib/ai/agent';
 import type { RecoLaptop } from '@/lib/ai/tools';
 
 // Adapta los resultados del asistente (RecoLaptop, con specs planas) al shape
-// SeriesCard que espera LaptopGrid. Cada recomendación es siempre una sola
-// configuración (configCount=1), así que se pinta como card normal.
+// SeriesCard que espera LaptopGrid. En el chat pintamos la config CONCRETA que el
+// asistente eligió como card normal (configCount=1 a propósito, sin expandir — el
+// asistente ya escogió la mejor variante). El tamaño real de la serie viaja en
+// RecoLaptop.configCount y lo usa el modelo en su texto ("disponible en N configs").
 function recoToSeriesCards(laptops: RecoLaptop[]): SeriesCard[] {
   return laptops.map((l) => ({
     id: l.id,
