@@ -51,3 +51,5 @@ scrape-debug-*.json
 
 # Dumps locales del scraper de benchmarks
 tmp/
+
+.superpowers/

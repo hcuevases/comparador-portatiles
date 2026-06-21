@@ -4,8 +4,36 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useRef, useState } from 'react';
 
-import { LaptopGrid } from '@/components/laptop-grid';
+import { LaptopGrid, type SeriesCard } from '@/components/laptop-grid';
 import type { RecomendadorUIMessage } from '@/lib/ai/agent';
+import type { RecoLaptop } from '@/lib/ai/tools';
+
+// Adapta los resultados del asistente (RecoLaptop, con specs planas) al shape
+// SeriesCard que espera LaptopGrid. Cada recomendación es siempre una sola
+// configuración (configCount=1), así que se pinta como card normal.
+function recoToSeriesCards(laptops: RecoLaptop[]): SeriesCard[] {
+  return laptops.map((l) => ({
+    id: l.id,
+    slug: l.slug,
+    brand: l.brand,
+    model: l.model,
+    seriesKey: null,
+    year: l.year,
+    image_url: l.image_url,
+    minPriceEur: l.minPriceEur,
+    configCount: 1,
+    chipInput: {
+      ramMin: l.specs?.ram_gb ?? null,
+      ramMax: l.specs?.ram_gb ?? null,
+      storageMin: l.specs?.storage_gb ?? null,
+      storageMax: l.specs?.storage_gb ?? null,
+      screenMin: l.specs?.screen_inches ?? null,
+      screenMax: l.specs?.screen_inches ?? null,
+      cpus: l.specs?.cpu ? [l.specs.cpu] : [],
+      repCpu: l.specs?.cpu ?? null,
+    },
+  }));
+}
 
 // Persistimos la conversación en sessionStorage (por pestaña, nunca al servidor →
 // efímero/GDPR). Así, al abrir una ficha recomendada y volver atrás, el historial y
@@ -145,7 +173,7 @@ export function ChatAssistant({ initialQuery }: { initialQuery?: string }) {
                   }
                   if (part.type === 'tool-buscarPortatiles') {
                     if (part.state === 'output-available' && part.output.laptops.length > 0) {
-                      return <LaptopGrid key={i} laptops={part.output.laptops} />;
+                      return <LaptopGrid key={i} laptops={recoToSeriesCards(part.output.laptops)} />;
                     }
                     if (part.state === 'output-available') {
                       return (

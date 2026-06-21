@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { tool, type UIToolInvocation } from 'ai';
 import { z } from 'zod';
 
+import { escapeIlike } from '@/lib/escape-ilike';
 import type { Database, Tables } from '@/lib/supabase/database.types';
 
 // Cliente anónimo (lectura pública del catálogo vía RLS). Las tools solo leen, no
@@ -73,10 +74,6 @@ export type RecoLaptop = {
   minPriceEur: number | null;
   specs: RecoSpecs | null;
 };
-
-function escapeIlike(input: string): string {
-  return input.replace(/[%_\\]/g, (m) => `\\${m}`);
-}
 
 export const buscarPortatiles = tool({
   description:
