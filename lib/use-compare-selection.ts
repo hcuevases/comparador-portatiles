@@ -4,7 +4,7 @@ import { useCallback, useSyncExternalStore } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 
-import { mergeSelectionIds } from './compare-merge';
+import { mergeSelectionIds, orderByIds } from './compare-merge';
 
 // Selección de portátiles para comparar, persistida en localStorage y
 // compartida entre todos los componentes que monten el hook (cards del grid,
@@ -117,8 +117,25 @@ async function pushToServer(ids: string[]): Promise<void> {
   }
 }
 
-// Trae la selección del servidor, la fusiona con la local, hidrata el display que falte
-// desde `laptops` y persiste el resultado (store + localStorage + servidor). No fatal.
+// Consulta `laptops` por estos ids y devuelve los que SIGUEN existiendo, en el orden de
+// `ids`, con display fresco. Los ids que ya no existen (laptop fusionada/borrada por el
+// dedup) se descartan. Devuelve `null` si la query FALLA (red/RLS) → el llamante no debe
+// tocar el carrito (si no, un error transitorio lo vaciaría). Sin red si `ids` está vacío.
+async function hydrateAndValidate(ids: string[]): Promise<CompareItem[] | null> {
+  if (ids.length === 0) return [];
+  const { data, error } = await db()
+    .from('laptops')
+    .select('id, brand, model, image_url')
+    .in('id', ids)
+    .returns<{ id: string; brand: string; model: string; image_url: string | null }[]>();
+  if (error) return null; // no podemos validar → no tocar el carrito
+  const items = (data ?? []).map((r) => ({ id: r.id, brand: r.brand, model: r.model, image_url: r.image_url }));
+  return orderByIds(ids, items);
+}
+
+// Trae la selección del servidor, la fusiona con la local, valida contra `laptops`
+// (descarta ids borrados, refresca display) y persiste el resultado limpio (store +
+// localStorage + servidor). No fatal.
 async function syncFromServer(): Promise<void> {
   if (!userId) return;
   try {
@@ -133,31 +150,33 @@ async function syncFromServer(): Promise<void> {
     const localIds = selection.map((i) => i.id);
     const mergedIds = mergeSelectionIds(localIds, serverIds, MAX_COMPARE);
 
-    // Datos de display que ya tenemos en el store (de localStorage).
-    const have = new Map(selection.map((i) => [i.id, i] as const));
-    const missing = mergedIds.filter((id) => !have.has(id));
-
-    if (missing.length > 0) {
-      const { data: rows } = await db()
-        .from('laptops')
-        .select('id, brand, model, image_url')
-        .in('id', missing)
-        .returns<{ id: string; brand: string; model: string; image_url: string | null }[]>();
-      for (const r of rows ?? []) {
-        have.set(r.id, { id: r.id, brand: r.brand, model: r.model, image_url: r.image_url });
-      }
-    }
-
-    // Reconstruye en el orden fusionado; descarta ids sin datos (laptop borrada).
-    const merged = mergedIds.map((id) => have.get(id)).filter((x): x is CompareItem => x !== undefined);
-    setSelection(merged); // actualiza store + localStorage y empuja al servidor
+    const valid = await hydrateAndValidate(mergedIds);
+    if (valid === null) return; // fallo de validación → no tocar el carrito
+    setSelection(valid); // actualiza store + localStorage y empuja los ids limpios al servidor
   } catch {
     // No fatal.
   }
 }
 
-// Arranca la sync una sola vez (en navegador). Escucha cambios de sesión: al iniciar
-// sesión (o si ya hay sesión al montar) fusiona; al cerrar sesión conserva lo local.
+// Valida el carrito LOCAL contra `laptops` (descarta laptops borradas, refresca display).
+// Sobre todo para anónimos: su carrito no se limpia desde el servidor. Solo reescribe si
+// cambió la composición, para no provocar renders innecesarios. No fatal.
+async function validateLocalCart(): Promise<void> {
+  try {
+    ensureInit();
+    if (selection.length === 0) return;
+    const valid = await hydrateAndValidate(selection.map((i) => i.id));
+    if (valid === null) return; // fallo de validación → no tocar
+    const changed = valid.length !== selection.length || valid.some((v, i) => v.id !== selection[i].id);
+    if (changed) setSelection(valid);
+  } catch {
+    // No fatal.
+  }
+}
+
+// Arranca la sync una sola vez (en navegador). Escucha cambios de sesión: con sesión,
+// fusiona servidor+local; sin sesión, valida el carrito local. Al cerrar sesión conserva
+// lo local.
 function startSync(): void {
   if (syncStarted || typeof window === 'undefined') return;
   syncStarted = true;
@@ -166,6 +185,7 @@ function startSync(): void {
     if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
       userId = newId;
       if (userId) void syncFromServer();
+      else void validateLocalCart(); // anónimo: poda del carrito las laptops ya borradas
     } else if (event === 'SIGNED_OUT') {
       userId = null; // conservar la selección local
     } else {

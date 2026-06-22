@@ -9,3 +9,11 @@ export function mergeSelectionIds(localIds: string[], serverIds: string[], max: 
   }
   return out;
 }
+
+// Reordena `items` según `ids` y DESCARTA los ids cuyo item no existe (p.ej. una laptop
+// borrada por el dedup). Mantiene el orden de `ids`. Genérica sobre cualquier objeto con
+// `id`; la usa el hook para podar del carrito las laptops que ya no están en BD.
+export function orderByIds<T extends { id: string }>(ids: string[], items: T[]): T[] {
+  const byId = new Map(items.map((i) => [i.id, i] as const));
+  return ids.map((id) => byId.get(id)).filter((x): x is T => x !== undefined);
+}
