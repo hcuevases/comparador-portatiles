@@ -128,8 +128,10 @@ async function hydrateAndValidate(ids: string[]): Promise<CompareItem[] | null> 
     .select('id, brand, model, image_url')
     .in('id', ids)
     .returns<{ id: string; brand: string; model: string; image_url: string | null }[]>();
-  if (error) return null; // no podemos validar → no tocar el carrito
-  const items = (data ?? []).map((r) => ({ id: r.id, brand: r.brand, model: r.model, image_url: r.image_url }));
+  // `data: null` (con o sin error) = no pudimos validar → null para no tocar el carrito.
+  // Un "sin coincidencias" legítimo devuelve [] (array vacío), no null.
+  if (error || !data) return null;
+  const items = data.map((r) => ({ id: r.id, brand: r.brand, model: r.model, image_url: r.image_url }));
   return orderByIds(ids, items);
 }
 
