@@ -2,6 +2,10 @@
 
 import { useCallback, useSyncExternalStore } from 'react';
 
+import { createClient } from '@/lib/supabase/client';
+
+import { mergeSelectionIds } from './compare-merge';
+
 // Selección de portátiles para comparar, persistida en localStorage y
 // compartida entre todos los componentes que monten el hook (cards del grid,
 // botón de la ficha, barra flotante global). Usamos un store a nivel de módulo
@@ -28,6 +32,19 @@ const EMPTY: readonly CompareItem[] = [];
 let selection: CompareItem[] = [];
 let initialized = false;
 const listeners = new Set<() => void>();
+
+// --- Sincronización con Supabase (solo usuarios logueados) ---
+// Cliente browser singleton (lazy, solo en navegador) para auth + lectura/escritura.
+let supabase: ReturnType<typeof createClient> | null = null;
+function db(): ReturnType<typeof createClient> {
+  if (!supabase) supabase = createClient();
+  return supabase;
+}
+
+// Usuario actual (null = anónimo) y guarda para arrancar la sync una sola vez,
+// aunque el hook se monte en muchas cards.
+let userId: string | null = null;
+let syncStarted = false;
 
 function read(): CompareItem[] {
   if (typeof window === 'undefined') return [];
@@ -85,6 +102,76 @@ function setSelection(next: CompareItem[]) {
   selection = next;
   persist();
   emit();
+  void pushToServer(next.map((i) => i.id));
+}
+
+// Sube los ids actuales al servidor (no-op si anónimo). No fatal.
+async function pushToServer(ids: string[]): Promise<void> {
+  if (typeof window === 'undefined' || !userId) return;
+  try {
+    await db()
+      .from('compare_selections')
+      .upsert({ user_id: userId, laptop_ids: ids, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  } catch {
+    // No fatal: la selección sigue viva en localStorage.
+  }
+}
+
+// Trae la selección del servidor, la fusiona con la local, hidrata el display que falte
+// desde `laptops` y persiste el resultado (store + localStorage + servidor). No fatal.
+async function syncFromServer(): Promise<void> {
+  if (!userId) return;
+  try {
+    const { data } = await db()
+      .from('compare_selections')
+      .select('laptop_ids')
+      .eq('user_id', userId)
+      .maybeSingle();
+    const serverIds: string[] = data?.laptop_ids ?? [];
+
+    ensureInit();
+    const localIds = selection.map((i) => i.id);
+    const mergedIds = mergeSelectionIds(localIds, serverIds, MAX_COMPARE);
+
+    // Datos de display que ya tenemos en el store (de localStorage).
+    const have = new Map(selection.map((i) => [i.id, i] as const));
+    const missing = mergedIds.filter((id) => !have.has(id));
+
+    if (missing.length > 0) {
+      const { data: rows } = await db()
+        .from('laptops')
+        .select('id, brand, model, image_url')
+        .in('id', missing)
+        .returns<{ id: string; brand: string; model: string; image_url: string | null }[]>();
+      for (const r of rows ?? []) {
+        have.set(r.id, { id: r.id, brand: r.brand, model: r.model, image_url: r.image_url });
+      }
+    }
+
+    // Reconstruye en el orden fusionado; descarta ids sin datos (laptop borrada).
+    const merged = mergedIds.map((id) => have.get(id)).filter((x): x is CompareItem => x !== undefined);
+    setSelection(merged); // actualiza store + localStorage y empuja al servidor
+  } catch {
+    // No fatal.
+  }
+}
+
+// Arranca la sync una sola vez (en navegador). Escucha cambios de sesión: al iniciar
+// sesión (o si ya hay sesión al montar) fusiona; al cerrar sesión conserva lo local.
+function startSync(): void {
+  if (syncStarted || typeof window === 'undefined') return;
+  syncStarted = true;
+  db().auth.onAuthStateChange((event, session) => {
+    const newId = session?.user?.id ?? null;
+    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+      userId = newId;
+      if (userId) void syncFromServer();
+    } else if (event === 'SIGNED_OUT') {
+      userId = null; // conservar la selección local
+    } else {
+      userId = newId; // TOKEN_REFRESHED / USER_UPDATED: mantener id fresco, sin re-fusionar
+    }
+  });
 }
 
 // Sincronización entre pestañas: el evento `storage` solo dispara en OTROS
@@ -100,6 +187,7 @@ if (typeof window !== 'undefined') {
 
 function subscribe(callback: () => void): () => void {
   ensureInit();
+  startSync();
   listeners.add(callback);
   return () => {
     listeners.delete(callback);
