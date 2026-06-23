@@ -100,7 +100,11 @@ una corrida normal; `--retry-notfound` es para la cola larga (Componente 2).
   (Geekbench/3DMark/specs del fabricante), con comentario de origen por fila.
 - **Guarda en el enricher**: `--retry-notfound` filtra a `status='notfound'`, así que
   nunca pisa una fila `manual`. Una corrida normal ya las excluye (`existingKeys`).
-- No hay cambio de esquema (las columnas existen) ni de UI (mismo join).
+- No hay cambio de esquema (las columnas existen).
+- **Sí hay un cambio de UI mínimo**: las queries de ficha (`app/portatiles/[slug]/page.tsx`)
+  y comparar (`app/comparar/page.tsx`) filtraban `status='ok'`, así que excluían las
+  manuales. Se relajan a `status in ('ok','manual')` (4 reads). [Corrección sobre el
+  supuesto inicial de "sin cambio de UI", que era falso: el join sí filtraba por status.]
 
 ## Población de datos (ejecución, durante la implementación)
 
@@ -133,7 +137,8 @@ una corrida normal; `--retry-notfound` es para la cola larga (Componente 2).
 
 ## No-objetivos (YAGNI)
 
-- No tocar el join ni la UI de ficha/comparar.
+- No rediseñar la UI de benchmarks (solo se relaja el filtro `status` de los 4 reads
+  para incluir `'manual'`; sin cambios de layout ni de componentes).
 - No cron (el enricher de benchmarks es manual por IP de datacenter; sigue igual).
 - No perseguir el 100% de la cola larga: por cobertura.
 - No refactor del enricher más allá de los dos flags.
