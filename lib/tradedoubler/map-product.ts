@@ -1,6 +1,7 @@
 // Mapeo puro de un producto de Tradedoubler a la oferta normalizada (RetailerOffer) y
 // selección del producto cuyo EAN coincide. Sin red ni estado → unit-testeable.
 
+import type { DiscoveredProduct } from '@/lib/connectors/discover';
 import type { RetailerOffer } from '@/lib/connectors/upsert-offer';
 
 import type { TdProduct } from './types';
@@ -44,4 +45,24 @@ export function pickByEan(products: TdProduct[], ean: string): TdProduct | null 
   if (exact) return exact;
   const anyDeclaresEan = products.some((p) => p.identifiers?.ean);
   return anyDeclaresEan ? null : (products[0] ?? null);
+}
+
+/**
+ * Mapea un producto de Tradedoubler a `DiscoveredProduct` para el descubrimiento.
+ * Devuelve null si falta el EAN (no se puede dedup ni casar) o si no hay oferta
+ * válida (mapProduct → null, p.ej. sin productUrl).
+ */
+export function toDiscovered(p: TdProduct): DiscoveredProduct | null {
+  const ean = p.identifiers?.ean;
+  if (!ean) return null;
+  const offer = mapProduct(p);
+  if (!offer) return null;
+  return {
+    ean,
+    name: p.name ?? '',
+    brand: p.brand ?? null,
+    category: p.categories?.[0]?.name ?? null,
+    imageUrl: p.productImage?.url ?? null,
+    offer,
+  };
 }
