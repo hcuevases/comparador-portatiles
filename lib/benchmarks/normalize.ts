@@ -42,7 +42,12 @@ export function extractCpuKey(name: string, family: string | null): string | nul
     return `amd-ryzen-${ai}${m[2]}-${m[3]}${m[4].toLowerCase()}`;
   }
 
-  // Qualcomm Snapdragon X (Elite|Plus).
+  // Qualcomm Snapdragon X con código de modelo: "X1-26-100", "X1P-42-100",
+  // "X1E-78-100". Distingue los tiers (X1 base / X1P Plus / X1E Elite), que comparten
+  // el nombre "Snapdragon X" pero son chips distintos en nanoreview.
+  m = name.match(/Snapdragon\s+(X1[EP]?)[-\s](\d{2})-(\d{3})/i);
+  if (m) return `qualcomm-snapdragon-${m[1].toLowerCase()}-${m[2]}-${m[3]}`;
+  // Sin código: solo "Snapdragon X" o "X Elite/Plus" en el nombre.
   m = name.match(/Snapdragon\s+X(?:\s+(Elite|Plus))?/i);
   if (m) return `qualcomm-snapdragon-x${m[1] ? `-${m[1].toLowerCase()}` : ''}`;
 

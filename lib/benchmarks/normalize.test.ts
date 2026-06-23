@@ -53,3 +53,35 @@ describe('extractGpuKey', () => {
     expect(extractGpuKey(gpu, name)).toBe(expected);
   });
 });
+
+describe('extractCpuKey — Snapdragon X por modelo', () => {
+  it('captura el código X1-26-100', () => {
+    expect(extractCpuKey('OmniBook 5 16" Snapdragon X1-26-100 16GB 512GB SSD', null)).toBe(
+      'qualcomm-snapdragon-x1-26-100',
+    );
+  });
+  it('captura X1P (Plus) y X1E (Elite) con código', () => {
+    expect(extractCpuKey('IdeaPad 5 Qualcomm Snapdragon X1P-42-100 16GB', null)).toBe(
+      'qualcomm-snapdragon-x1p-42-100',
+    );
+    expect(extractCpuKey('ThinkPad T14s Snapdragon X1E-78-100 32GB', null)).toBe(
+      'qualcomm-snapdragon-x1e-78-100',
+    );
+    expect(extractCpuKey('Latitude 7455 Snapdragon X1E-80-100 32 GB', null)).toBe(
+      'qualcomm-snapdragon-x1e-80-100',
+    );
+  });
+  it('sin código cae al fallback (bare / Elite / Plus)', () => {
+    expect(extractCpuKey('OmniBook 5 NGAI 16" Snapdragon X 16GB 512GB SSD', null)).toBe(
+      'qualcomm-snapdragon-x',
+    );
+    expect(extractCpuKey('Galaxy Book4 Edge Snapdragon X Elite 16GB', null)).toBe(
+      'qualcomm-snapdragon-x-elite',
+    );
+  });
+  it('no afecta a otras marcas (regresión)', () => {
+    expect(extractCpuKey('Acer Aspire Intel Core i7-13620H 16GB', 'Intel Core i7')).toBe(
+      'intel-core-i7-13620h',
+    );
+  });
+});
