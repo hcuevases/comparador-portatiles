@@ -87,6 +87,7 @@ describe('toDiscovered', () => {
   it('descarta si no hay EAN', () => {
     expect(toDiscovered({ ...base, identifiers: {} })).toBeNull();
     expect(toDiscovered({ ...base, identifiers: undefined })).toBeNull();
+    expect(toDiscovered({ ...base, identifiers: { ean: '' } })).toBeNull();
   });
 
   it('descarta si no hay productUrl (mapProduct → null)', () => {
