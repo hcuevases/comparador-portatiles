@@ -22,16 +22,37 @@ export function MobileFilters({ brands, productLines, ramOptions, total }: Props
   const searchParams = useSearchParams();
   const activeCount = countActiveFilters(searchParams);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // Mientras el sheet está abierto: bloquea el scroll del body, enfoca el botón cerrar y
-  // escucha Escape. El cleanup restaura todo aunque el componente se desmonte abierto.
+  // escucha teclado (Escape cierra; Tab queda atrapado dentro del diálogo). El cleanup
+  // restaura todo aunque el componente se desmonte abierto.
   useEffect(() => {
     if (!open) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+        return;
+      }
+      // Focus trap: el Tab no debe salir del diálogo (modal accesible, sin dependencias).
+      if (e.key === 'Tab') {
+        const focusable = panelRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        if (!focusable || focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => {
@@ -53,7 +74,10 @@ export function MobileFilters({ brands, productLines, ramOptions, total }: Props
         >
           Filtros
           {activeCount > 0 && (
-            <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-cyan-600 px-1.5 text-xs font-semibold text-white">
+            <span
+              aria-label={`${activeCount} filtros activos`}
+              className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-cyan-600 px-1.5 text-xs font-semibold text-white"
+            >
               {activeCount}
             </span>
           )}
@@ -68,13 +92,16 @@ export function MobileFilters({ brands, productLines, ramOptions, total }: Props
             aria-hidden="true"
           />
           <div
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Filtros"
+            aria-labelledby="mobile-filters-title"
             className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col rounded-t-2xl bg-white shadow-xl dark:bg-zinc-950"
           >
             <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-              <h2 className="text-sm font-semibold">Filtros</h2>
+              <h2 id="mobile-filters-title" className="text-sm font-semibold">
+                Filtros
+              </h2>
               <button
                 ref={closeRef}
                 type="button"
