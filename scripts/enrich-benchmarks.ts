@@ -17,6 +17,8 @@
  *   npm run enrich:benchmarks -- --kind cpu --limit 50  # scrapea 50 CPU
  *   npm run enrich:benchmarks -- --dump intel-core-i7-13620h --kind cpu
  *        # vuelca el HTML de una página a tmp/ para capturar fixtures del parser
+ *   npm run enrich:benchmarks -- --rekey <clave>         # resetea esa clave y re-keya (paso 1)
+ *   npm run enrich:benchmarks -- --kind cpu --retry-notfound  # reintenta filas status='notfound'
  *
  * Env (de .env.local): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
  */
@@ -52,7 +54,7 @@ const { values: args, positionals } = parseArgs({
     dump: { type: 'string' }, // clave a volcar (HTML → tmp/)
     delay: { type: 'string', default: '1500' },
     rekey: { type: 'string' }, // pone a null cpu_key/gpu_key = <clave> antes de fillKeys
-    'retry-notfound': { type: 'boolean', default: false }, // (otra tarea) re-scrapea notfound
+    'retry-notfound': { type: 'boolean', default: false }, // re-scrapea filas status='notfound'
   },
 });
 
@@ -62,7 +64,7 @@ const DRY_RUN = args['dry-run'];
 const KEYS_ONLY = args['keys-only'];
 const DELAY = Number(args.delay);
 const REKEY = args.rekey;
-const RETRY_NOTFOUND = args['retry-notfound']; // usado en una tarea posterior
+const RETRY_NOTFOUND = args['retry-notfound'];
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
