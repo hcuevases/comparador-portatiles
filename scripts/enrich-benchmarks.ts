@@ -51,6 +51,8 @@ const { values: args, positionals } = parseArgs({
     'keys-only': { type: 'boolean', default: false },
     dump: { type: 'string' }, // clave a volcar (HTML → tmp/)
     delay: { type: 'string', default: '1500' },
+    rekey: { type: 'string' }, // pone a null cpu_key/gpu_key = <clave> antes de fillKeys
+    'retry-notfound': { type: 'boolean', default: false }, // (otra tarea) re-scrapea notfound
   },
 });
 
@@ -59,6 +61,8 @@ const KIND = args.kind as 'cpu' | 'gpu' | 'both';
 const DRY_RUN = args['dry-run'];
 const KEYS_ONLY = args['keys-only'];
 const DELAY = Number(args.delay);
+const REKEY = args.rekey;
+const RETRY_NOTFOUND = args['retry-notfound']; // usado en una tarea posterior
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -128,6 +132,22 @@ async function extractPage(page: Page, url: string): Promise<Extract> {
     return { map: out, score: null as number | null, html: document.documentElement.outerHTML };
   });
   return { kind: 'ok', data };
+}
+
+// ─── Re-keying: resetea claves para recomputarlas con el normalizador nuevo ──
+
+// Pone a null cpu_key/gpu_key iguales a `oldKey` para que fillKeys los recompute con el
+// normalizador nuevo. Idempotente. Útil tras corregir el normalizador de un componente.
+async function rekey(oldKey: string): Promise<void> {
+  if (DRY_RUN) {
+    console.log(`(dry) re-key: pondría a null cpu_key/gpu_key = "${oldKey}"`);
+    return;
+  }
+  const c = await supabase.from('specs').update({ cpu_key: null }).eq('cpu_key', oldKey).select('laptop_id');
+  const g = await supabase.from('specs').update({ gpu_key: null }).eq('gpu_key', oldKey).select('laptop_id');
+  if (c.error) console.log(`   ✗ rekey cpu: ${c.error.message}`);
+  if (g.error) console.log(`   ✗ rekey gpu: ${g.error.message}`);
+  console.log(`re-key "${oldKey}": cpu ${c.data?.length ?? 0}, gpu ${g.data?.length ?? 0} fila(s) reseteadas.`);
 }
 
 // ─── Paso 1: rellenar specs.cpu_key / gpu_key (puro, sin red) ───────────────
@@ -374,6 +394,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (REKEY) await rekey(REKEY);
   await fillKeys();
   if (KEYS_ONLY) return;
 
@@ -392,6 +413,8 @@ async function main(): Promise<void> {
 // `positionals` no se usa hoy (claves van por --dump); referencia para silenciar
 // el linter si se activa noUnusedLocals en scripts.
 void positionals;
+// `RETRY_NOTFOUND` se usa en una tarea posterior; silencia el linter hasta entonces.
+void RETRY_NOTFOUND;
 
 main().catch((e) => {
   console.error(e);
