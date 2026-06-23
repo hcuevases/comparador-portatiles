@@ -91,8 +91,11 @@ async function main(): Promise<void> {
 
   if (DISCOVER) {
     // Enumera el feed (real o mock) por keyword, dedup por EAN, y crea/adjunta.
-    const existingEans = (await loadEanTargets(supabase, 3)).map((t) => t.ean);
+    // OJO: la decisión crear-vs-adjuntar la toma discoverOrAttach consultando la BD por
+    // EAN, no la lista de abajo. `existingEans` solo siembra el feed MOCK con unos EANs
+    // reales (para ejercitar "attached"); en real no se usa, por eso va dentro del branch.
     const dummyCfg = cfg ?? { token: 'mock', feedId: 'mock' };
+    const existingEans = MOCK ? (await loadEanTargets(supabase, 3)).map((t) => t.ean) : [];
     const products = await enumerateLaptops(dummyCfg, {
       delayMs: MOCK ? 0 : DELAY,
       ...(MOCK
@@ -124,7 +127,7 @@ async function main(): Promise<void> {
       }
     }
     console.log(
-      `\n✅ Descubrimiento: ${created} creados, ${attached} adjuntados (ya en catálogo), ${skipped} saltados.`,
+      `\n✅ Descubrimiento: ${created} creados, ${attached} adjuntados (ya en catálogo), ${skipped} saltados (no portátil o sin datos).`,
     );
     return;
   }
