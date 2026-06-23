@@ -144,36 +144,39 @@ Añadir `--discover` (mismo patrón que `enrich-elcorteingles.ts`):
 
 - **Sin `--discover`** (comportamiento actual): adjunta por EAN a existentes. Sin cambios.
 - **Con `--discover`**:
-  1. Obtener la lista enumerada de productos:
-     - real: `await enumerateLaptops(cfg, { … })`;
-     - `--mock`: construir la lista directamente recorriendo `mockEnumerateResponse`
-       por keyword/página, **sin** pasar por el cliente real (igual que ECI evita
-       `downloadFeed` en mock y parte de `mockFeedCsv`). Así `--mock` no necesita
-       `cfg` ni red.
+  1. Obtener la lista enumerada de productos con **una sola** ruta de código,
+     `enumerateLaptops(cfg, opts)`, cambiando solo la **fuente** (igual que ECI
+     cambia `downloadFeed` por `mockFeedCsv` pero reusa `parseAwinFeed`):
+     - real: `await enumerateLaptops(cfg, { … })` (usa `fetchPage` real interno);
+     - `--mock`: `await enumerateLaptops(dummyCfg, { delayMs: 0, fetchPage:
+       (_cfg, kw, page, size) => mockEnumerateResponse(kw, page, size, existingEans) })`,
+       con `existingEans` = unos pocos EANs de catálogo para ejercitar "attached".
+       Así se reutiliza la paginación + dedup por EAN sin duplicarlas y sin red.
   2. Por cada producto: `d = toDiscovered(p)`; si `null`, cuenta como saltado.
   3. `discoverOrAttach(supabase, retailerId, d, { dryRun: DRY_RUN })`.
   4. Respeta `--limit` (corta la lista enumerada), `--dry-run`, `--mock`.
   5. Resumen: `creados / adjuntados (ya en catálogo) / saltados (no portátil o sin datos)`.
 
-El parámetro `fetchPage` de `EnumerateOpts` existe para **unit-testear** la
-paginación/dedup de `enumerateLaptops` sin red; el script en `--mock` no lo usa
-(construye la lista directamente, como arriba).
+El parámetro `fetchPage` de `EnumerateOpts` es el punto de inyección de la fuente:
+lo usa tanto el `--mock` del script como los unit-tests de paginación/dedup (sin red).
 
 ### 5. Mock — `lib/tradedoubler/mock.ts`
 
 Añadir junto a `mockProductsResponse` (que no se toca):
 
 ```ts
-export function mockEnumerateResponse(keyword: string, page: number, pageSize: number): TdProductsResponse;
+export function mockEnumerateResponse(
+  keyword: string, page: number, pageSize: number, existingEans?: string[],
+): TdProductsResponse;
 ```
 
-- Devuelve una página simulada con `productHeader.totalHits` y un puñado de productos
-  con `categories`, `brand`, `productImage`, incluyendo:
-  - 1-2 EANs **no existentes** en catálogo (ejercita "created"),
-  - al menos 1 EAN existente (ejercita "attached"),
-  - 1 accesorio (categoría "Funda"/"Ratón") para ejercitar el filtro `isLaptopProduct`.
-- Paginación coherente: a partir de cierta `page` devuelve `products: []` para que la
-  enumeración pare.
+- `page === 1`: devuelve un puñado de productos con `categories`, `brand`,
+  `productImage` y `productHeader.totalHits`, incluyendo:
+  - 1-2 EANs **no existentes** en catálogo (hardcodeados; ejercita "created"),
+  - los `existingEans` mapeados a productos portátil (ejercita "attached"),
+  - 1 accesorio (categoría "Fundas") para ejercitar el filtro `isLaptopProduct`.
+- `page > 1`: devuelve `products: []` para que la enumeración pare (catálogo simulado
+  pequeño, cabe en una página).
 
 ## Manejo de errores
 
