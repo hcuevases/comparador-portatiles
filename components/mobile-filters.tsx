@@ -29,6 +29,7 @@ export function MobileFilters({ brands, productLines, ramOptions, total }: Props
   // restaura todo aunque el componente se desmonte abierto.
   useEffect(() => {
     if (!open) return;
+    const opener = document.activeElement as HTMLElement | null; // para devolver el foco al cerrar
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     closeRef.current?.focus();
@@ -58,6 +59,7 @@ export function MobileFilters({ brands, productLines, ramOptions, total }: Props
     return () => {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', onKey);
+      opener?.focus(); // devuelve el foco al botón que abrió el sheet
     };
   }, [open]);
 
@@ -75,7 +77,7 @@ export function MobileFilters({ brands, productLines, ramOptions, total }: Props
           Filtros
           {activeCount > 0 && (
             <span
-              aria-label={`${activeCount} filtros activos`}
+              aria-label={`${activeCount} ${activeCount === 1 ? 'filtro activo' : 'filtros activos'}`}
               className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-cyan-600 px-1.5 text-xs font-semibold text-white"
             >
               {activeCount}
