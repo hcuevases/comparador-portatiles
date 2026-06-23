@@ -186,8 +186,14 @@ function startSync(): void {
     const newId = session?.user?.id ?? null;
     if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
       userId = newId;
-      if (userId) void syncFromServer();
-      else void validateLocalCart(); // anónimo: poda del carrito las laptops ya borradas
+      // OJO: no llamar a Supabase DENTRO del callback de onAuthStateChange.
+      // auth-js sostiene un lock (Navigator LockManager) mientras notifica a los
+      // suscriptores; cualquier query vuelve a pedir ese lock para leer el token
+      // → deadlock: la query nunca resuelve (el pull no traía el servidor y la
+      // pestaña se congelaba). El vendor lo documenta: diferir con setTimeout(…, 0)
+      // para ejecutar las queries una vez el callback ha terminado y soltado el lock.
+      if (userId) setTimeout(() => void syncFromServer(), 0);
+      else setTimeout(() => void validateLocalCart(), 0); // anónimo: poda laptops borradas
     } else if (event === 'SIGNED_OUT') {
       userId = null; // conservar la selección local
     } else {
