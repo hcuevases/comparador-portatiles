@@ -17,6 +17,8 @@
  *   npm run enrich:benchmarks -- --kind cpu --limit 50  # scrapea 50 CPU
  *   npm run enrich:benchmarks -- --dump intel-core-i7-13620h --kind cpu
  *        # vuelca el HTML de una página a tmp/ para capturar fixtures del parser
+ *   npm run enrich:benchmarks -- --rekey <clave>         # resetea esa clave y re-keya (paso 1)
+ *   npm run enrich:benchmarks -- --kind cpu --retry-notfound  # reintenta filas status='notfound'
  *
  * Env (de .env.local): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
  */
@@ -51,6 +53,8 @@ const { values: args, positionals } = parseArgs({
     'keys-only': { type: 'boolean', default: false },
     dump: { type: 'string' }, // clave a volcar (HTML → tmp/)
     delay: { type: 'string', default: '1500' },
+    rekey: { type: 'string' }, // pone a null cpu_key/gpu_key = <clave> antes de fillKeys
+    'retry-notfound': { type: 'boolean', default: false }, // re-scrapea filas status='notfound'
   },
 });
 
@@ -59,6 +63,8 @@ const KIND = args.kind as 'cpu' | 'gpu' | 'both';
 const DRY_RUN = args['dry-run'];
 const KEYS_ONLY = args['keys-only'];
 const DELAY = Number(args.delay);
+const REKEY = args.rekey;
+const RETRY_NOTFOUND = args['retry-notfound'];
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -128,6 +134,22 @@ async function extractPage(page: Page, url: string): Promise<Extract> {
     return { map: out, score: null as number | null, html: document.documentElement.outerHTML };
   });
   return { kind: 'ok', data };
+}
+
+// ─── Re-keying: resetea claves para recomputarlas con el normalizador nuevo ──
+
+// Pone a null cpu_key/gpu_key iguales a `oldKey` para que fillKeys los recompute con el
+// normalizador nuevo. Idempotente. Útil tras corregir el normalizador de un componente.
+async function rekey(oldKey: string): Promise<void> {
+  if (DRY_RUN) {
+    console.log(`(dry) re-key: pondría a null cpu_key/gpu_key = "${oldKey}"`);
+    return;
+  }
+  const c = await supabase.from('specs').update({ cpu_key: null }).eq('cpu_key', oldKey).select('laptop_id');
+  const g = await supabase.from('specs').update({ gpu_key: null }).eq('gpu_key', oldKey).select('laptop_id');
+  if (c.error) console.log(`   ✗ rekey cpu: ${c.error.message}`);
+  if (g.error) console.log(`   ✗ rekey gpu: ${g.error.message}`);
+  console.log(`re-key "${oldKey}": cpu ${c.data?.length ?? 0}, gpu ${g.data?.length ?? 0} fila(s) reseteadas.`);
 }
 
 // ─── Paso 1: rellenar specs.cpu_key / gpu_key (puro, sin red) ───────────────
@@ -206,12 +228,20 @@ async function pagedDistinct(column: 'cpu_key' | 'gpu_key'): Promise<Set<string>
   return out;
 }
 
-async function existingKeys(table: 'cpu_benchmarks' | 'gpu_benchmarks'): Promise<Set<string>> {
-  const out = new Set<string>();
-  const { data, error } = await supabase.from(table).select('component_key').returns<{ component_key: string }[]>();
+type ExistingKeys = { done: Set<string>; notfound: Set<string> };
+
+// `done` = status 'ok' | 'manual' (no re-scrapear nunca). `notfound` = reintentables
+// con --retry-notfound. Las filas 'manual' caen en `done`, así que quedan protegidas.
+async function loadExisting(table: 'cpu_benchmarks' | 'gpu_benchmarks'): Promise<ExistingKeys> {
+  const { data, error } = await supabase
+    .from(table)
+    .select('component_key, status')
+    .returns<{ component_key: string; status: string }[]>();
   if (error) throw new Error(error.message);
-  for (const r of data ?? []) out.add(r.component_key);
-  return out;
+  const done = new Set<string>();
+  const notfound = new Set<string>();
+  for (const r of data ?? []) (r.status === 'notfound' ? notfound : done).add(r.component_key);
+  return { done, notfound };
 }
 
 async function overrideSlug(kind: 'cpu' | 'gpu', key: string): Promise<string | null> {
@@ -236,7 +266,11 @@ function candidateSlugs(kind: 'cpu' | 'gpu', key: string): string[] {
 async function scrapeKind(kind: 'cpu' | 'gpu', browser: Browser): Promise<void> {
   const col = kind === 'cpu' ? 'cpu_key' : 'gpu_key';
   const table = kind === 'cpu' ? 'cpu_benchmarks' : 'gpu_benchmarks';
-  const needed = [...(await pagedDistinct(col))].filter((k) => !existingSets[table].has(k)).slice(0, LIMIT);
+  // Excluir siempre las `done` (ok/manual); las `notfound` solo si NO se pide reintento.
+  const ex = existingSets[table];
+  const needed = [...(await pagedDistinct(col))]
+    .filter((k) => !ex.done.has(k) && (RETRY_NOTFOUND || !ex.notfound.has(k)))
+    .slice(0, LIMIT);
   console.log(`Paso 2 (${kind}): ${needed.length} componente(s) a scrapear.`);
 
   let ok = 0;
@@ -332,9 +366,9 @@ async function upsertNotFound(kind: 'cpu' | 'gpu', key: string, slug: string): P
 }
 
 // Cache de claves ya scrapeadas, cargada una vez antes de scrapear.
-const existingSets: Record<'cpu_benchmarks' | 'gpu_benchmarks', Set<string>> = {
-  cpu_benchmarks: new Set(),
-  gpu_benchmarks: new Set(),
+const existingSets: Record<'cpu_benchmarks' | 'gpu_benchmarks', ExistingKeys> = {
+  cpu_benchmarks: { done: new Set(), notfound: new Set() },
+  gpu_benchmarks: { done: new Set(), notfound: new Set() },
 };
 
 // ─── Modo dump: vuelca el HTML de una página para capturar fixtures ─────────
@@ -374,11 +408,12 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (REKEY) await rekey(REKEY);
   await fillKeys();
   if (KEYS_ONLY) return;
 
-  existingSets.cpu_benchmarks = await existingKeys('cpu_benchmarks');
-  existingSets.gpu_benchmarks = await existingKeys('gpu_benchmarks');
+  existingSets.cpu_benchmarks = await loadExisting('cpu_benchmarks');
+  existingSets.gpu_benchmarks = await loadExisting('gpu_benchmarks');
 
   const browser: Browser = await chromium.launch({ headless: true });
   try {

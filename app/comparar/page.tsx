@@ -136,7 +136,7 @@ export default async function CompararPage({
           .from('cpu_benchmarks')
           .select('component_key, score, geekbench_multi')
           .in('component_key', cpuKeys)
-          .eq('status', 'ok')
+          .in('status', ['ok', 'manual'])
           .returns<CpuBench[]>()
       : Promise.resolve({ data: [] as CpuBench[] }),
     gpuKeys.length
@@ -144,7 +144,7 @@ export default async function CompararPage({
           .from('gpu_benchmarks')
           .select('component_key, score, g3dmark')
           .in('component_key', gpuKeys)
-          .eq('status', 'ok')
+          .in('status', ['ok', 'manual'])
           .returns<GpuBench[]>()
       : Promise.resolve({ data: [] as GpuBench[] }),
   ]);

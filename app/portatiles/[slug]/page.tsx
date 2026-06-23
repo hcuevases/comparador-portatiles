@@ -157,14 +157,15 @@ export default async function LaptopDetailPage({
     ]);
 
   // Benchmarks por componente (join por la clave normalizada). Solo si specs trae
-  // clave y el componente ya está scrapeado con datos (status='ok').
+  // clave y el componente tiene datos: scrapeado (status='ok') o manual (status='manual',
+  // p.ej. Apple M-Pro/Max, ausentes de nanoreview).
   const [{ data: cpuBench }, { data: gpuBench }] = await Promise.all([
     specs?.cpu_key
       ? supabase
           .from('cpu_benchmarks')
           .select('name, score, geekbench_single, geekbench_multi, cores, threads, tdp_w, release_year')
           .eq('component_key', specs.cpu_key)
-          .eq('status', 'ok')
+          .in('status', ['ok', 'manual'])
           .maybeSingle<CpuBench>()
       : Promise.resolve({ data: null }),
     specs?.gpu_key
@@ -172,7 +173,7 @@ export default async function LaptopDetailPage({
           .from('gpu_benchmarks')
           .select('name, score, g3dmark, vram_gb, tdp_w')
           .eq('component_key', specs.gpu_key)
-          .eq('status', 'ok')
+          .in('status', ['ok', 'manual'])
           .maybeSingle<GpuBench>()
       : Promise.resolve({ data: null }),
   ]);
