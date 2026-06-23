@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { mapProduct, parsePrice, pickByEan } from './map-product';
+import { mapProduct, parsePrice, pickByEan, toDiscovered } from './map-product';
 import type { TdProduct } from './types';
 
 const prod: TdProduct = {
@@ -58,5 +58,51 @@ describe('pickByEan', () => {
   it('si ningún producto declara EAN, confía en el filtro del servidor (primero)', () => {
     const noEan: TdProduct = { productUrl: 'https://y' };
     expect(pickByEan([noEan], '4711122334455')).toBe(noEan);
+  });
+});
+
+describe('toDiscovered', () => {
+  const base = {
+    name: 'Portátil Acer Aspire 5',
+    productUrl: 'https://clk.tradedoubler.com/click?url=x',
+    price: { value: '899.00', currency: 'EUR' },
+    productImage: { url: 'https://img/x.jpg' },
+    identifiers: { ean: '4711121212121' },
+    brand: 'Acer',
+    categories: [{ name: 'Portátiles' }],
+    availability: 'in stock',
+  };
+
+  it('mapea un producto completo', () => {
+    expect(toDiscovered(base)).toEqual({
+      ean: '4711121212121',
+      name: 'Portátil Acer Aspire 5',
+      brand: 'Acer',
+      category: 'Portátiles',
+      imageUrl: 'https://img/x.jpg',
+      offer: { url: 'https://clk.tradedoubler.com/click?url=x', priceEur: 899, inStock: true },
+    });
+  });
+
+  it('descarta si no hay EAN', () => {
+    expect(toDiscovered({ ...base, identifiers: {} })).toBeNull();
+    expect(toDiscovered({ ...base, identifiers: undefined })).toBeNull();
+    expect(toDiscovered({ ...base, identifiers: { ean: '' } })).toBeNull();
+  });
+
+  it('descarta si no hay productUrl (mapProduct → null)', () => {
+    expect(toDiscovered({ ...base, productUrl: undefined })).toBeNull();
+  });
+
+  it('campos opcionales ausentes → null/cadena vacía, sin romper', () => {
+    const r = toDiscovered({ productUrl: 'https://x', identifiers: { ean: '1' } });
+    expect(r).toEqual({
+      ean: '1',
+      name: '',
+      brand: null,
+      category: null,
+      imageUrl: null,
+      offer: { url: 'https://x', priceEur: null, inStock: null },
+    });
   });
 });

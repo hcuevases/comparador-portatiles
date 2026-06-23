@@ -4,6 +4,7 @@
 export type TdPrice = { value?: string | number; currency?: string };
 export type TdImage = { url?: string };
 export type TdIdentifiers = { ean?: string; sku?: string };
+export type TdCategory = { name?: string };
 
 export type TdProduct = {
   name?: string;
@@ -13,6 +14,9 @@ export type TdProduct = {
   productImage?: TdImage;
   identifiers?: TdIdentifiers;
   availability?: string; // texto libre del anunciante ("in stock", etc.)
+  brand?: string; // para descubrimiento (parseBrandModel)
+  categories?: TdCategory[]; // para descubrimiento (isLaptopProduct)
 };
 
-export type TdProductsResponse = { products?: TdProduct[] };
+// `productHeader.totalHits` = total de resultados de la búsqueda (para paginar).
+export type TdProductsResponse = { products?: TdProduct[]; productHeader?: { totalHits?: number } };
