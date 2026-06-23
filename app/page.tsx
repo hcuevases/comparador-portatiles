@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { HomeHero } from '@/components/home-hero';
 import { LaptopFilters } from '@/components/laptop-filters';
+import { MobileFilters } from '@/components/mobile-filters';
 import { LaptopGrid, type SeriesCard } from '@/components/laptop-grid';
 import { Pagination } from '@/components/pagination';
 import { SortSelect } from '@/components/sort-select';
@@ -229,11 +230,13 @@ function renderPage(
         </div>
       )}
 
-      {/* Filtros en barra lateral izquierda (sticky en ≥md — incluye tablets y el
-          modo escritorio del móvil; apilados sobre los resultados en pantallas
-          pequeñas). */}
+      {/* Móvil (<md): filtros en bottom-sheet abierto por un botón sticky. */}
+      <MobileFilters brands={allBrands} productLines={productLines} total={totalCount} />
+
+      {/* Filtros en barra lateral izquierda en ≥md (sticky). En móvil el aside se oculta
+          y los filtros viven en el bottom-sheet de arriba. */}
       <div className="md:grid md:grid-cols-[15rem_1fr] md:items-start md:gap-6 lg:grid-cols-[16rem_1fr] lg:gap-8">
-        <aside className="md:sticky md:top-4 md:max-h-[calc(100vh-2rem)] md:overflow-y-auto md:pb-4">
+        <aside className="hidden md:block md:sticky md:top-4 md:max-h-[calc(100vh-2rem)] md:overflow-y-auto md:pb-4">
           <LaptopFilters brands={allBrands} productLines={productLines} />
         </aside>
 
