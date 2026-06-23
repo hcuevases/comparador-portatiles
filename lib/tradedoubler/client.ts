@@ -50,7 +50,7 @@ export type FetchPage = (
 export type EnumerateOpts = {
   keywords?: readonly string[]; // default: DISCOVER_KEYWORDS
   pageSize?: number; // default: 60
-  maxPerKeyword?: number; // tope de seguridad; default: 1000 (límite de la API)
+  maxPerKeyword?: number; // tope de productos acumulados por keyword; default 1000 (≈ límite de la API: 1000 resultados/búsqueda)
   delayMs?: number; // sleep entre páginas reales; default: 1100
   fetchPage?: FetchPage; // default: fetch real
 };
@@ -100,7 +100,8 @@ export async function enumerateLaptops(
       try {
         resp = await fetchPage(cfg, keyword, page, pageSize);
       } catch (e) {
-        console.warn(`enumerateLaptops "${keyword}" p${page}: ${(e as Error).message.slice(0, 80)}`);
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn(`enumerateLaptops "${keyword}" p${page}: ${msg.slice(0, 80)}`);
         break;
       }
       const products = resp.products ?? [];

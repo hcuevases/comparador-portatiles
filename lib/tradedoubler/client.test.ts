@@ -33,9 +33,22 @@ describe('enumerateLaptops', () => {
     expect(fetchPage).toHaveBeenCalledTimes(1); // no pide page 2
   });
 
+  it('para por totalHits con páginas completas (no por página parcial)', async () => {
+    // 2 páginas completas de 2 (totalHits=4): cada página tiene products.length === pageSize,
+    // así que el ÚNICO motivo de parada es `page*pageSize >= totalHits`.
+    const fetchPage: FetchPage = vi.fn(async (_c, _kw, page) => ({
+      products: [prod(`${page}a`), prod(`${page}b`)],
+      productHeader: { totalHits: 4 },
+    }));
+    const out = await enumerateLaptops(cfg, { keywords: ['a'], pageSize: 2, fetchPage });
+    expect(out).toHaveLength(4);
+    expect(fetchPage).toHaveBeenCalledTimes(2); // page 1 y 2, no pide la 3
+  });
+
   it('respeta maxPerKeyword', async () => {
+    let n = 0;
     const fetchPage: FetchPage = vi.fn(async () => ({
-      products: [prod(String(Math.random()))], // siempre 1, nunca se agota por tamaño
+      products: [prod(`e${n++}`)], // 1 EAN único por página, nunca se agota por tamaño
       productHeader: { totalHits: 9999 },
     }));
     await enumerateLaptops(cfg, { keywords: ['a'], pageSize: 1, maxPerKeyword: 3, fetchPage });
