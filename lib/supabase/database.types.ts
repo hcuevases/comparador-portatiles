@@ -77,6 +77,24 @@ export type Database = {
         }
         Relationships: []
       }
+      compare_selections: {
+        Row: {
+          laptop_ids: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          laptop_ids?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          laptop_ids?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       comparisons: {
         Row: {
           created_at: string

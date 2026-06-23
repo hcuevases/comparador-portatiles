@@ -2,6 +2,10 @@
 
 import { useCallback, useSyncExternalStore } from 'react';
 
+import { createClient } from '@/lib/supabase/client';
+
+import { mergeSelectionIds, orderByIds } from './compare-merge';
+
 // Selección de portátiles para comparar, persistida en localStorage y
 // compartida entre todos los componentes que monten el hook (cards del grid,
 // botón de la ficha, barra flotante global). Usamos un store a nivel de módulo
@@ -28,6 +32,19 @@ const EMPTY: readonly CompareItem[] = [];
 let selection: CompareItem[] = [];
 let initialized = false;
 const listeners = new Set<() => void>();
+
+// --- Sincronización con Supabase (solo usuarios logueados) ---
+// Cliente browser singleton (lazy, solo en navegador) para auth + lectura/escritura.
+let supabase: ReturnType<typeof createClient> | null = null;
+function db(): ReturnType<typeof createClient> {
+  if (!supabase) supabase = createClient();
+  return supabase;
+}
+
+// Usuario actual (null = anónimo) y guarda para arrancar la sync una sola vez,
+// aunque el hook se monte en muchas cards.
+let userId: string | null = null;
+let syncStarted = false;
 
 function read(): CompareItem[] {
   if (typeof window === 'undefined') return [];
@@ -85,6 +102,104 @@ function setSelection(next: CompareItem[]) {
   selection = next;
   persist();
   emit();
+  void pushToServer(next.map((i) => i.id));
+}
+
+// Sube los ids actuales al servidor (no-op si anónimo). No fatal.
+async function pushToServer(ids: string[]): Promise<void> {
+  if (typeof window === 'undefined' || !userId) return;
+  try {
+    await db()
+      .from('compare_selections')
+      .upsert({ user_id: userId, laptop_ids: ids, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  } catch {
+    // No fatal: la selección sigue viva en localStorage.
+  }
+}
+
+// Consulta `laptops` por estos ids y devuelve los que SIGUEN existiendo, en el orden de
+// `ids`, con display fresco. Los ids que ya no existen (laptop fusionada/borrada por el
+// dedup) se descartan. Devuelve `null` si la query FALLA (red/RLS) → el llamante no debe
+// tocar el carrito (si no, un error transitorio lo vaciaría). Sin red si `ids` está vacío.
+async function hydrateAndValidate(ids: string[]): Promise<CompareItem[] | null> {
+  if (ids.length === 0) return [];
+  const { data, error } = await db()
+    .from('laptops')
+    .select('id, brand, model, image_url')
+    .in('id', ids)
+    .returns<{ id: string; brand: string; model: string; image_url: string | null }[]>();
+  // `data: null` (con o sin error) = no pudimos validar → null para no tocar el carrito.
+  // Un "sin coincidencias" legítimo devuelve [] (array vacío), no null.
+  if (error || !data) return null;
+  const items = data.map((r) => ({ id: r.id, brand: r.brand, model: r.model, image_url: r.image_url }));
+  return orderByIds(ids, items);
+}
+
+// Trae la selección del servidor, la fusiona con la local, valida contra `laptops`
+// (descarta ids borrados, refresca display) y persiste el resultado limpio (store +
+// localStorage + servidor). No fatal.
+async function syncFromServer(): Promise<void> {
+  if (!userId) return;
+  try {
+    const { data } = await db()
+      .from('compare_selections')
+      .select('laptop_ids')
+      .eq('user_id', userId)
+      .maybeSingle();
+    const serverIds: string[] = data?.laptop_ids ?? [];
+
+    ensureInit();
+    const localIds = selection.map((i) => i.id);
+    const mergedIds = mergeSelectionIds(localIds, serverIds, MAX_COMPARE);
+
+    const valid = await hydrateAndValidate(mergedIds);
+    if (valid === null) return; // fallo de validación → no tocar el carrito
+    setSelection(valid); // actualiza store + localStorage y empuja los ids limpios al servidor
+  } catch {
+    // No fatal.
+  }
+}
+
+// Valida el carrito LOCAL contra `laptops` (descarta laptops borradas, refresca display).
+// Sobre todo para anónimos: su carrito no se limpia desde el servidor. Solo reescribe si
+// cambió la composición, para no provocar renders innecesarios. No fatal.
+async function validateLocalCart(): Promise<void> {
+  try {
+    ensureInit();
+    if (selection.length === 0) return;
+    const valid = await hydrateAndValidate(selection.map((i) => i.id));
+    if (valid === null) return; // fallo de validación → no tocar
+    const changed = valid.length !== selection.length || valid.some((v, i) => v.id !== selection[i].id);
+    if (changed) setSelection(valid);
+  } catch {
+    // No fatal.
+  }
+}
+
+// Arranca la sync una sola vez (en navegador). Escucha cambios de sesión: con sesión,
+// fusiona servidor+local; sin sesión, valida el carrito local. Al cerrar sesión conserva
+// lo local.
+function startSync(): void {
+  if (syncStarted || typeof window === 'undefined') return;
+  syncStarted = true;
+  db().auth.onAuthStateChange((event, session) => {
+    const newId = session?.user?.id ?? null;
+    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+      userId = newId;
+      // OJO: no llamar a Supabase DENTRO del callback de onAuthStateChange.
+      // auth-js sostiene un lock (Navigator LockManager) mientras notifica a los
+      // suscriptores; cualquier query vuelve a pedir ese lock para leer el token
+      // → deadlock: la query nunca resuelve (el pull no traía el servidor y la
+      // pestaña se congelaba). El vendor lo documenta: diferir con setTimeout(…, 0)
+      // para ejecutar las queries una vez el callback ha terminado y soltado el lock.
+      if (userId) setTimeout(() => void syncFromServer(), 0);
+      else setTimeout(() => void validateLocalCart(), 0); // anónimo: poda laptops borradas
+    } else if (event === 'SIGNED_OUT') {
+      userId = null; // conservar la selección local
+    } else {
+      userId = newId; // TOKEN_REFRESHED / USER_UPDATED: mantener id fresco, sin re-fusionar
+    }
+  });
 }
 
 // Sincronización entre pestañas: el evento `storage` solo dispara en OTROS
@@ -100,6 +215,7 @@ if (typeof window !== 'undefined') {
 
 function subscribe(callback: () => void): () => void {
   ensureInit();
+  startSync();
   listeners.add(callback);
   return () => {
     listeners.delete(callback);
