@@ -1,6 +1,7 @@
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
+import { FeaturedSection } from '@/components/featured-section';
 import { HomeHero } from '@/components/home-hero';
 import { LaptopFilters } from '@/components/laptop-filters';
 import { MobileFilters } from '@/components/mobile-filters';
@@ -229,6 +230,8 @@ function renderPage(
           {message}
         </div>
       )}
+
+      <FeaturedSection />
 
       {/* Móvil (<md): filtros en bottom-sheet abierto por un botón sticky. */}
       <MobileFilters brands={allBrands} productLines={productLines} total={totalCount} />
