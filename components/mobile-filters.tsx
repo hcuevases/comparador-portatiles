@@ -161,7 +161,7 @@ export function MobileFilters({ brands, productLines, ramOptions, total }: Props
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <LaptopFilters brands={brands} productLines={productLines} ramOptions={ramOptions} />
+              <LaptopFilters brands={brands} productLines={productLines} ramOptions={ramOptions} embedded />
             </div>
 
             <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">

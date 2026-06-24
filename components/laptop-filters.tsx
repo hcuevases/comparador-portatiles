@@ -9,6 +9,10 @@ type Props = {
   brands: string[];
   productLines: ProductLine[];
   ramOptions?: number[];
+  // `embedded`: omite el chrome de tarjeta (borde/fondo/sombra/padding/margen) para
+  // renderizar a ras dentro de un contenedor que ya lo aporta (p.ej. el bottom-sheet
+  // móvil). Por defecto false → tarjeta (uso del sidebar de escritorio).
+  embedded?: boolean;
 };
 
 const DEFAULT_RAM_OPTIONS = [8, 16, 32];
@@ -40,6 +44,7 @@ export function LaptopFilters({
   brands,
   productLines,
   ramOptions = DEFAULT_RAM_OPTIONS,
+  embedded = false,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -137,7 +142,11 @@ export function LaptopFilters({
   return (
     <section
       aria-label="Filtros de portátiles"
-      className="mb-6 space-y-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+      className={
+        embedded
+          ? 'space-y-4'
+          : 'mb-6 space-y-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950'
+      }
     >
       {/* Búsqueda + precio + limpiar en una fila */}
       <div className="flex flex-wrap items-end gap-3">
