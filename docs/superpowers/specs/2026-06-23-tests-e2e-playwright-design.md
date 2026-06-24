@@ -66,10 +66,12 @@ Job nuevo `e2e` (paralelo a `quality`):
 - `runs-on: ubuntu-latest`, `timeout-minutes: 15`.
 - Checkout → setup-node 22 (cache npm) → `npm ci` → `npx playwright install --with-deps chromium`.
 - `npm run e2e` con env:
-  - `NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}`
-  - El env del step cubre tanto el `npm run build` (inlina las `NEXT_PUBLIC_*`) como el
-    `npm run start` (SSR) que lanza el `webServer`.
+  - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y
+    `SUPABASE_SERVICE_ROLE_KEY` (los tres desde secrets). **OJO**: el `next build` de la
+    ficha `/portatiles/[slug]` usa el **cliente admin** → necesita la service role key, no
+    solo las `NEXT_PUBLIC_*`. (Se descubrió en la 1ª corrida de CI: el build fallaba con
+    "Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY". El secret ya existía.)
+  - El env del step cubre tanto el `npm run build` como el `npm run start` (SSR) del `webServer`.
 - Subir el reporte como artifact si falla: `actions/upload-artifact@v4` con
   `playwright-report/`, `if: always()`.
 
