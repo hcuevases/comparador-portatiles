@@ -40,6 +40,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { createClient } from '@supabase/supabase-js';
 import { config as loadEnv } from 'dotenv';
 
+import { sanePrice } from '@/lib/price';
 import type { Database, Tables, TablesInsert } from '@/lib/supabase/database.types';
 
 loadEnv({ path: '.env.local' });
@@ -290,7 +291,9 @@ function mapHit(hit: AlgoliaHit): LaptopDetail | null {
   // Reacondicionado: PcComponentes lo marca con `?refurbished` en el slug crudo.
   const refurbished = rawSlug.includes('?refurbished');
 
-  const price = asNumber(hit.price);
+  // sanePrice descarta los placeholders de PcComponentes (6.45, 9999, ~10005…): un precio
+  // fuera de [100, 9500] € se trata como "sin precio" y NO se inserta en prices_history.
+  const price = sanePrice(asNumber(hit.price));
   const description = asString(hit.description);
 
   // images = { large: {path, width, height}, medium: {...}, small: {...} }.
