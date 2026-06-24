@@ -53,3 +53,8 @@ scrape-debug-*.json
 tmp/
 
 .superpowers/
+
+# Playwright
+/playwright-report/
+/test-results/
+/playwright/.cache/
