@@ -1,6 +1,7 @@
-import Image from 'next/image';
+import { Laptop } from 'lucide-react';
 import Link from 'next/link';
 
+import { ImageWithFallback } from '@/components/image-with-fallback';
 import { SubmitButton } from '@/components/submit-button';
 import { pccThumb } from '@/lib/images';
 import type { Tables } from '@/lib/supabase/database.types';
@@ -222,17 +223,14 @@ export default async function CompararPage({
                 <th key={l.id} className="min-w-40 border-l border-zinc-100 px-3 py-4 text-left align-bottom dark:border-zinc-900">
                   <Link href={`/portatiles/${l.slug}`} className="group block">
                     <div className="relative mb-2.5 flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl border border-zinc-100 bg-[radial-gradient(120%_120%_at_50%_0%,var(--color-zinc-100),var(--color-white))] dark:border-zinc-800 dark:bg-[radial-gradient(120%_120%_at_50%_0%,var(--color-zinc-800),var(--color-zinc-950))]">
-                      {l.image_url ? (
-                        <Image
-                          src={pccThumb(l.image_url, 300)}
-                          alt={`${l.brand} ${l.model}`}
-                          fill
-                          sizes="80px"
-                          className="object-contain p-2 transition-transform duration-300 group-hover:scale-105"
-                        />
-                      ) : (
-                        <span className="text-[10px] text-zinc-400">Sin imagen</span>
-                      )}
+                      <ImageWithFallback
+                        src={l.image_url ? pccThumb(l.image_url, 300) : null}
+                        alt={`${l.brand} ${l.model}`}
+                        fill
+                        sizes="80px"
+                        className="object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+                        fallback={<Laptop className="h-7 w-7 text-zinc-300 dark:text-zinc-700" aria-hidden />}
+                      />
                     </div>
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-cyan-700 dark:text-cyan-400">
                       {l.brand}

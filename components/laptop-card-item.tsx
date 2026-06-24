@@ -1,11 +1,12 @@
 'use client';
 
-import { Check, Plus } from 'lucide-react';
-import Image from 'next/image';
+import { Check, Laptop, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 import { pccThumb } from '@/lib/images';
 import { useCompareSelection } from '@/lib/use-compare-selection';
+
+import { ImageWithFallback } from './image-with-fallback';
 
 // Una card de configuración concreta (un laptop_id real). Lleva el checkbox de
 // comparar y enlaza a su ficha. La usan las series con 1 sola config y las configs
@@ -77,17 +78,18 @@ export function LaptopCardItem({ item, backQuery }: { item: CardItem; backQuery?
               Reacondicionado
             </span>
           )}
-          {item.image_url ? (
-            <Image
-              src={pccThumb(item.image_url, 300)}
-              alt={`${item.brand} ${item.model}`}
-              fill
-              sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-              className="relative object-contain p-5 drop-shadow-md transition-transform duration-500 ease-out group-hover:scale-[1.06]"
-            />
-          ) : (
-            <div className="relative flex h-full items-center justify-center text-xs text-zinc-400">Sin imagen</div>
-          )}
+          <ImageWithFallback
+            src={item.image_url ? pccThumb(item.image_url, 300) : null}
+            alt={`${item.brand} ${item.model}`}
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="relative object-contain p-5 drop-shadow-md transition-transform duration-500 ease-out group-hover:scale-[1.06]"
+            fallback={
+              <div className="relative flex h-full items-center justify-center">
+                <Laptop className="h-12 w-12 text-zinc-300 dark:text-zinc-700" aria-hidden />
+              </div>
+            }
+          />
         </div>
 
         <div className="flex flex-1 flex-col border-t border-zinc-100 p-4 dark:border-zinc-900">

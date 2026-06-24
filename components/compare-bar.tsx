@@ -1,10 +1,12 @@
 'use client';
 
-import Image from 'next/image';
+import { Laptop } from 'lucide-react';
 import Link from 'next/link';
 
 import { pccThumb } from '@/lib/images';
 import { useCompareSelection, type CompareItem } from '@/lib/use-compare-selection';
+
+import { ImageWithFallback } from './image-with-fallback';
 
 // Cesta flotante global de comparación. Montada en el layout raíz, aparece en
 // cualquier página cuando hay al menos un portátil seleccionado. El estado vive
@@ -89,19 +91,14 @@ function Thumb({ item, onRemove }: { item: CompareItem; onRemove: () => void }) 
   return (
     <div className="animate-pop-in group/thumb relative shrink-0">
       <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-950">
-        {item.image_url ? (
-          <Image
-            src={pccThumb(item.image_url, 150)}
-            alt={`${item.brand} ${item.model}`}
-            width={56}
-            height={56}
-            className="h-full w-full object-contain p-1.5"
-          />
-        ) : (
-          <span className="px-1 text-center text-[9px] leading-tight text-zinc-400">
-            {item.model || '—'}
-          </span>
-        )}
+        <ImageWithFallback
+          src={item.image_url ? pccThumb(item.image_url, 150) : null}
+          alt={`${item.brand} ${item.model}`}
+          width={56}
+          height={56}
+          className="h-full w-full object-contain p-1.5"
+          fallback={<Laptop className="h-5 w-5 text-zinc-300 dark:text-zinc-600" aria-hidden />}
+        />
       </div>
       <button
         type="button"

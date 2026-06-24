@@ -1,9 +1,10 @@
-import Image from 'next/image';
+import { Laptop } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { AddToCompareButton } from '@/components/add-to-compare-button';
 import { BackToCatalog, BackToCatalogFallback } from '@/components/back-to-catalog';
+import { ImageWithFallback } from '@/components/image-with-fallback';
 import { PriceAlertButton } from '@/components/price-alert-button';
 import {
   PriceHistoryChart,
@@ -261,13 +262,18 @@ export default async function LaptopDetailPage({
       <header className="mb-10 grid gap-6 sm:grid-cols-[auto_1fr] sm:items-start sm:gap-8">
         {laptop.image_url && (
           <div className="relative h-60 w-60 shrink-0 overflow-hidden rounded-2xl border border-zinc-200 bg-[radial-gradient(120%_120%_at_50%_0%,var(--color-zinc-100),var(--color-white))] shadow-md shadow-zinc-900/5 dark:border-zinc-800 dark:bg-[radial-gradient(120%_120%_at_50%_0%,var(--color-zinc-800),var(--color-zinc-950))]">
-            <Image
+            <ImageWithFallback
               src={laptop.image_url}
               alt={`${laptop.brand} ${laptop.model}`}
               fill
               sizes="240px"
               className="object-contain p-6 drop-shadow-lg"
               priority
+              fallback={
+                <div className="flex h-full items-center justify-center">
+                  <Laptop className="h-20 w-20 text-zinc-300 dark:text-zinc-700" aria-hidden />
+                </div>
+              }
             />
           </div>
         )}
