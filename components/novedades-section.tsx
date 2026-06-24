@@ -21,7 +21,7 @@ type NovedadRow = {
 // Se auto-consulta y se oculta si no hay filas o la RPC falla (no fatal).
 export async function NovedadesSection() {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('home_novedades', { p_limit: 12 }).returns<NovedadRow[]>();
+  const { data, error } = await supabase.rpc('home_novedades', { p_limit: 8 }).returns<NovedadRow[]>();
 
   if (error || !data || data.length === 0) return null;
 
