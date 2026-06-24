@@ -540,6 +540,20 @@ export type Database = {
           slug: string
         }[]
       }
+      home_novedades: {
+        Args: { p_limit?: number }
+        Returns: {
+          brand: string
+          cpu: string
+          current_price_eur: number
+          id: string
+          image_url: string
+          model: string
+          ram_gb: number
+          screen_inches: number
+          slug: string
+        }[]
+      }
       prune_discontinued: {
         Args: { p_days?: number }
         Returns: {
