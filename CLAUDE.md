@@ -57,8 +57,11 @@ npm run dev
 # build de producción
 npm run build
 
-# tests
+# tests (unitarios, Vitest)
 npm test
+
+# tests e2e (Playwright, contra build local; necesita Chromium: npx playwright install chromium)
+npm run e2e
 
 # lint
 npm run lint
