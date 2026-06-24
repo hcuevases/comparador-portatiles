@@ -216,6 +216,7 @@ export type Database = {
           description: string | null
           discontinued_at: string | null
           ean: string | null
+          featured_rank: number | null
           id: string
           image_url: string | null
           model: string
@@ -233,6 +234,7 @@ export type Database = {
           description?: string | null
           discontinued_at?: string | null
           ean?: string | null
+          featured_rank?: number | null
           id?: string
           image_url?: string | null
           model: string
@@ -250,6 +252,7 @@ export type Database = {
           description?: string | null
           discontinued_at?: string | null
           ean?: string | null
+          featured_rank?: number | null
           id?: string
           image_url?: string | null
           model?: string
@@ -501,6 +504,40 @@ export type Database = {
         Returns: {
           n: number
           product_line: string
+        }[]
+      }
+      home_deals: {
+        Args: {
+          p_limit?: number
+          p_min_drop_pct?: number
+          p_window_days?: number
+        }
+        Returns: {
+          brand: string
+          cpu: string
+          current_price_eur: number
+          drop_pct: number
+          id: string
+          image_url: string
+          model: string
+          old_price_eur: number
+          ram_gb: number
+          screen_inches: number
+          slug: string
+        }[]
+      }
+      home_featured: {
+        Args: { p_limit?: number }
+        Returns: {
+          brand: string
+          cpu: string
+          current_price_eur: number
+          id: string
+          image_url: string
+          model: string
+          ram_gb: number
+          screen_inches: number
+          slug: string
         }[]
       }
       prune_discontinued: {
