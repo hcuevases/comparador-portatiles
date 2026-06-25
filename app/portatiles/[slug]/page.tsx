@@ -147,6 +147,7 @@ export default async function LaptopDetailPage({
         .select('id, retailer_id, url')
         .eq('laptop_id', laptop.id)
         .eq('active', true)
+        .is('unavailable_at', null)
         .returns<AffiliateLink[]>(),
       supabase
         .from('prices_history')

@@ -18,7 +18,8 @@
     "enrich:benchmarks": "tsx scripts/enrich-benchmarks.ts",
     "enrich:amazon": "tsx scripts/enrich-amazon.ts",
     "enrich:mediamarkt": "tsx scripts/enrich-mediamarkt.ts",
-    "enrich:elcorteingles": "tsx scripts/enrich-elcorteingles.ts"
+    "enrich:elcorteingles": "tsx scripts/enrich-elcorteingles.ts",
+    "check:links": "tsx scripts/check-links.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.80",
