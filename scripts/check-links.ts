@@ -90,38 +90,34 @@ async function main() {
     }
     const ctx = await browser.newContext({ locale: 'es-ES', userAgent: UA });
     const page = await ctx.newPage();
-    const { status, title } = await probe(page, link.url);
-    await ctx.close();
+    let status = 0;
+    let title = '';
+    try {
+      ({ status, title } = await probe(page, link.url));
+    } finally {
+      await ctx.close();
+    }
 
     const health = classifyResponse(status, title);
     const now = new Date().toISOString();
     let mark = '?';
+    let update: Database['public']['Tables']['affiliate_links']['Update'];
     if (health === 'dead') {
       mark = '✗';
       dead++;
-      if (!DRY_RUN) {
-        await supabase
-          .from('affiliate_links')
-          .update({ unavailable_at: now, checked_at: now, last_status: status })
-          .eq('id', link.id);
-      }
+      update = { unavailable_at: now, checked_at: now, last_status: status };
     } else if (health === 'alive') {
       mark = '✓';
       alive++;
-      if (!DRY_RUN) {
-        await supabase
-          .from('affiliate_links')
-          .update({ unavailable_at: null, checked_at: now, last_status: 200 })
-          .eq('id', link.id);
-      }
+      update = { unavailable_at: null, checked_at: now, last_status: status };
     } else {
       inconclusive++;
-      if (!DRY_RUN) {
-        await supabase
-          .from('affiliate_links')
-          .update({ checked_at: now, last_status: status })
-          .eq('id', link.id);
-      }
+      update = { checked_at: now, last_status: status };
+    }
+
+    if (!DRY_RUN) {
+      const { error: upErr } = await supabase.from('affiliate_links').update(update).eq('id', link.id);
+      if (upErr) console.log(`   ✗ update (${health}): ${upErr.message}`);
     }
 
     console.log(`${mark} [${status || '---'}] ${link.url}`);
