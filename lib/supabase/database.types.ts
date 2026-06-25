@@ -18,28 +18,37 @@ export type Database = {
         Row: {
           active: boolean
           asin: string | null
+          checked_at: string | null
           created_at: string
           id: string
           laptop_id: string
+          last_status: number | null
           retailer_id: string
+          unavailable_at: string | null
           url: string
         }
         Insert: {
           active?: boolean
           asin?: string | null
+          checked_at?: string | null
           created_at?: string
           id?: string
           laptop_id: string
+          last_status?: number | null
           retailer_id: string
+          unavailable_at?: string | null
           url: string
         }
         Update: {
           active?: boolean
           asin?: string | null
+          checked_at?: string | null
           created_at?: string
           id?: string
           laptop_id?: string
+          last_status?: number | null
           retailer_id?: string
+          unavailable_at?: string | null
           url?: string
         }
         Relationships: [
@@ -485,6 +494,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      affiliate_links_to_check: {
+        Args: { p_limit?: number }
+        Returns: {
+          id: string
+          url: string
+        }[]
+      }
       compute_series_key: { Args: { p_model: string }; Returns: string }
       current_min_prices: {
         Args: { p_ids: string[] }
