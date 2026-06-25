@@ -17,3 +17,12 @@ test('la sección Destacados, si aparece, muestra cards de portátil', async ({ 
     await expect(section.locator('a[href^="/portatiles/"]').first()).toBeVisible();
   }
 });
+
+test('la sección Novedades, si aparece, muestra cards de portátil', async ({ page }) => {
+  await page.goto('/');
+  const novedades = page.getByRole('heading', { name: 'Novedades' });
+  if (await novedades.count()) {
+    const section = page.locator('section').filter({ has: novedades });
+    await expect(section.locator('a[href^="/portatiles/"]').first()).toBeVisible();
+  }
+});

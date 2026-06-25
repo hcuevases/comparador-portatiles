@@ -5,6 +5,7 @@ import { FeaturedSection } from '@/components/featured-section';
 import { HomeHero } from '@/components/home-hero';
 import { LaptopFilters } from '@/components/laptop-filters';
 import { MobileFilters } from '@/components/mobile-filters';
+import { NovedadesSection } from '@/components/novedades-section';
 import { LaptopGrid, type SeriesCard } from '@/components/laptop-grid';
 import { Pagination } from '@/components/pagination';
 import { SortSelect } from '@/components/sort-select';
@@ -232,6 +233,8 @@ function renderPage(
       )}
 
       <FeaturedSection />
+
+      <NovedadesSection />
 
       {/* Móvil (<md): filtros en bottom-sheet abierto por un botón sticky. */}
       <MobileFilters brands={allBrands} productLines={productLines} total={totalCount} />
