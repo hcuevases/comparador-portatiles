@@ -21,8 +21,10 @@ export function HomeHero() {
   const [, startTransition] = useTransition();
   const [q, setQ] = useState(searchParams.get('q') ?? '');
 
-  // Debounce del filtro en vivo hacia la URL (igual patrón que los filtros).
+  // Filtrado en vivo SOLO en /catalogo (donde hay rejilla debajo). En la portada el
+  // buscador no filtra en vivo: navega al catálogo al enviar (ver search()).
   useEffect(() => {
+    if (pathname !== '/catalogo') return;
     const t = setTimeout(() => {
       if (q !== (searchParams.get('q') ?? '')) {
         const params = new URLSearchParams(searchParams.toString());
@@ -38,6 +40,12 @@ export function HomeHero() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
+
+  // Búsqueda de texto desde la portada: lleva al catálogo ya filtrado por ?q=.
+  function search() {
+    const t = q.trim();
+    router.push(t ? `/catalogo?q=${encodeURIComponent(t)}` : '/catalogo');
+  }
 
   function ask(text?: string) {
     const t = (text ?? q).trim();
@@ -91,7 +99,10 @@ export function HomeHero() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                ask();
+                // En la portada, Enter = búsqueda de texto → catálogo filtrado.
+                // En /catalogo, se mantiene el comportamiento de hoy (Enter → IA).
+                if (pathname === '/catalogo') ask();
+                else search();
               }
             }}
             placeholder="busca o dime qué necesitas…"
