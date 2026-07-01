@@ -1,4 +1,4 @@
--- 0038_home_deals.sql
+-- 0043_home_deals.sql
 -- RPC para el feed de "Chollos" de la home: mayores bajadas de precio recientes.
 -- Precio actual = último por retailer (dentro de la ventana) -> mínimo. Referencia = PERCENTIL
 -- (mediana por defecto) del precio del portátil en la ventana, NO el máximo: el máximo es
