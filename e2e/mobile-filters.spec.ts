@@ -4,8 +4,7 @@ import { test, expect, devices } from '@playwright/test';
 test.use({ ...devices['Pixel 5'] });
 
 test('el bottom-sheet de filtros abre y cierra en móvil', async ({ page }) => {
-  // El banner de cookies (role="dialog") está en z-50 y cubre el pie del sheet;
-  // lo descartamos antes de navegar para que no intercepte el clic en "Ver resultados".
+  // Descartamos el banner de cookies antes de navegar para que no interfiera con el sheet.
   await page.addInitScript(() => {
     window.localStorage.setItem('cookie-consent', 'accepted');
   });
@@ -19,7 +18,11 @@ test('el bottom-sheet de filtros abre y cierra en móvil', async ({ page }) => {
   const dialog = page.getByRole('dialog', { name: 'Filtros' });
   await expect(dialog).toBeVisible();
 
-  // Cerrar con "Ver resultados" → el diálogo se desmonta.
-  await dialog.getByRole('button', { name: /Ver resultados/ }).click();
+  // Cerrar con la ✕ del encabezado. Se usa este cierre (y no "Ver resultados" del pie)
+  // porque el botón del pie es intermitentemente inestable en CI: durante la animación de
+  // entrada + el auto-scroll de Playwright, un pill del cuerpo scrollable intercepta el
+  // puntero (flake sintético, no un problema real de uso). La ✕ vive en el encabezado, fuera
+  // del contenedor scrollable, así que el cierre es determinista.
+  await dialog.getByRole('button', { name: 'Cerrar filtros' }).click();
   await expect(dialog).toHaveCount(0);
 });
