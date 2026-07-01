@@ -1,6 +1,7 @@
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
+import { DealsSection } from '@/components/deals-section';
 import { FeaturedSection } from '@/components/featured-section';
 import { HomeHero } from '@/components/home-hero';
 import { LaptopFilters } from '@/components/laptop-filters';
@@ -231,6 +232,8 @@ function renderPage(
           {message}
         </div>
       )}
+
+      <DealsSection />
 
       <FeaturedSection />
 

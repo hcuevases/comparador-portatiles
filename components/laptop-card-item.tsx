@@ -19,6 +19,9 @@ export type CardItem = {
   image_url: string | null;
   minPriceEur: number | null;
   chips: string[];
+  // Datos de oferta (solo en el feed de Chollos). Si vienen, la card muestra la bajada.
+  dealPct?: number;
+  oldPriceEur?: number;
 };
 
 export function LaptopCardItem({ item, backQuery }: { item: CardItem; backQuery?: string }) {
@@ -113,11 +116,21 @@ export function LaptopCardItem({ item, backQuery }: { item: CardItem; backQuery?
 
           <div className="mt-auto pt-4">
             {item.minPriceEur !== null ? (
-              <div className="flex items-baseline gap-1.5">
+              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
                 <span className="text-xs text-zinc-500">Desde</span>
                 <span className="font-display text-2xl font-extrabold tracking-tight tabular-nums">
                   {formatEur(item.minPriceEur)}
                 </span>
+                {item.dealPct != null && item.oldPriceEur != null && (
+                  <>
+                    <span className="text-xs text-zinc-400 line-through tabular-nums">
+                      {formatEur(item.oldPriceEur)}
+                    </span>
+                    <span className="rounded-md bg-orange-100 px-1.5 py-0.5 text-[11px] font-bold text-orange-700 dark:bg-orange-950 dark:text-orange-300">
+                      −{item.dealPct}%
+                    </span>
+                  </>
+                )}
               </div>
             ) : (
               <span className="text-xs text-zinc-400">Sin precio aún</span>
