@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-test('la home carga y muestra portátiles', async ({ page }) => {
+test('la portada carga con hero y CTA al catálogo', async ({ page }) => {
   await page.goto('/');
-  // Al menos una card enlaza a una ficha de portátil.
-  await expect(page.locator('a[href^="/portatiles/"]').first()).toBeVisible();
-  // El texto de contador de resultados aparece (o el de "sin resultados").
-  await expect(page.getByText(/serie|resultado/i).first()).toBeVisible();
+  // El hero (buscador) está presente.
+  await expect(page.getByLabel(/Busca un portátil/)).toBeVisible();
+  // El CTA lleva al catálogo completo.
+  await expect(page.getByRole('link', { name: /Explorar el catálogo/ })).toBeVisible();
 });
 
 test('la sección Destacados, si aparece, muestra cards de portátil', async ({ page }) => {
