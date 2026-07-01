@@ -25,6 +25,12 @@ export async function NavBar() {
 
         <nav className="flex items-center gap-4 text-sm">
           <Link
+            href="/catalogo"
+            className="font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Catálogo
+          </Link>
+          <Link
             href="/asistente"
             className="inline-flex items-center gap-1 font-medium text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300"
           >

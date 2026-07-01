@@ -13,7 +13,7 @@ const LINK_CLASS =
 export function BackToCatalog() {
   const params = useSearchParams();
   const from = params.get('from');
-  const href = from ? `/?${from}` : '/';
+  const href = from ? `/catalogo?${from}` : '/catalogo';
   return (
     <Link href={href} className={LINK_CLASS}>
       ← Volver al catálogo
@@ -26,7 +26,7 @@ export function BackToCatalog() {
 // resto de la ficha se sigue prerenderizando.
 export function BackToCatalogFallback() {
   return (
-    <Link href="/" className={LINK_CLASS}>
+    <Link href="/catalogo" className={LINK_CLASS}>
       ← Volver al catálogo
     </Link>
   );
