@@ -10,7 +10,7 @@ test('el bottom-sheet de filtros abre y cierra en móvil', async ({ page }) => {
     window.localStorage.setItem('cookie-consent', 'accepted');
   });
 
-  await page.goto('/');
+  await page.goto('/catalogo');
   const trigger = page.getByRole('button', { name: /Filtros/ });
   await expect(trigger).toBeVisible();
   await trigger.click();

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('el filtro de RAM mínima acota y se refleja en la URL', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/catalogo');
   await expect(page.locator('a[href^="/portatiles/"]').first()).toBeVisible();
   // "16 GB+" es un label fijo del filtro de RAM (no depende de los datos del catálogo).
   await page.getByRole('button', { name: '16 GB+' }).first().click();
