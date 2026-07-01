@@ -7,9 +7,9 @@ const LINK_CLASS =
   'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100';
 
 // Enlace "Volver al catálogo" que recuerda la página y los filtros de origen.
-// La home codifica su query string actual en `?from=` al enlazar cada ficha;
-// aquí lo leemos en cliente (para NO romper el prerender ISR de la ficha) y
-// reconstruimos `/?<query>`. Sin `from`, vuelve a la home base.
+// El catálogo (/catalogo) codifica su query string actual en `?from=` al enlazar
+// cada ficha; aquí lo leemos en cliente (para NO romper el prerender ISR de la
+// ficha) y reconstruimos `/catalogo?<query>`. Sin `from`, vuelve al catálogo base.
 export function BackToCatalog() {
   const params = useSearchParams();
   const from = params.get('from');
