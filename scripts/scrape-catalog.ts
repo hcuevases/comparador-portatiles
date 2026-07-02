@@ -41,6 +41,7 @@ import { createClient } from '@supabase/supabase-js';
 import { config as loadEnv } from 'dotenv';
 
 import { sanePrice } from '@/lib/price';
+import { isHighOutlier, median } from '@/lib/price-guard';
 import type { Database, Tables, TablesInsert } from '@/lib/supabase/database.types';
 
 loadEnv({ path: '.env.local' });
@@ -476,6 +477,31 @@ async function insertPriceHistory(
   retailerId: string,
   priceEur: number,
 ): Promise<void> {
+  // Guard anti precio-alto-erróneo: si el precio se dispara sobre la mediana reciente (30d) del
+  // (portátil, retailer), se descarta (no se inserta). Solo lado alto; ver lib/price-guard.
+  // Fail-open: si la lectura del histórico falla, se inserta igualmente (un guard que rompe el
+  // cron es peor que uno que deja pasar un punto puntual).
+  try {
+    const since = new Date(Date.now() - 30 * 864e5).toISOString();
+    const { data, error } = await supabase
+      .from('prices_history')
+      .select('price_eur')
+      .eq('laptop_id', laptopId)
+      .eq('retailer_id', retailerId)
+      .gte('observed_at', since);
+    if (!error && data) {
+      const recent = data.map((r) => Number(r.price_eur));
+      if (isHighOutlier(priceEur, recent)) {
+        console.warn(
+          `  ⚠ precio descartado ${priceEur}€ (mediana reciente ${median(recent)}€) — laptop ${laptopId}`,
+        );
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn(`  ⚠ guard de precio no pudo leer histórico (${laptopId}); se inserta igualmente:`, e);
+  }
+
   const pricePayload: TablesInsert<'prices_history'> = {
     laptop_id: laptopId,
     retailer_id: retailerId,
