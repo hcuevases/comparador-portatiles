@@ -23,7 +23,11 @@ type DealRow = {
 // oculta si no hay filas o la RPC falla (no fatal: la home sigue con el catálogo).
 export async function DealsSection() {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('home_deals', { p_limit: 12 }).returns<DealRow[]>();
+  // p_max_drop_pct=50: con el dato ya limpio de precio-alto-erróneo (guard + limpieza 0045), se
+  // dejan pasar chollos reales más agresivos. Sigue siendo la red contra un precio erróneamente bajo.
+  const { data, error } = await supabase
+    .rpc('home_deals', { p_limit: 12, p_max_drop_pct: 50 })
+    .returns<DealRow[]>();
 
   if (error || !data || data.length === 0) return null;
 
